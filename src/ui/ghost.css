@@ -1,0 +1,206 @@
+.ghost-gallery {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.ghost-gallery__heading {
+  display: grid;
+  gap: 1.25rem;
+  align-items: end;
+}
+
+.ghost-gallery__heading h2 {
+  margin: 0;
+  color: var(--color-bone);
+  font-family: var(--font-display);
+  font-size: clamp(1.75rem, 7vw, 2.5rem);
+  line-height: 1;
+}
+
+.ghost-gallery__heading p {
+  margin: 0.5rem 0 0;
+  color: var(--color-muted);
+  line-height: 1.5;
+}
+
+.ghost-gallery__control {
+  display: grid;
+  gap: 0.65rem;
+  color: var(--color-text);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.ghost-gallery__control span {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.ghost-gallery__control output {
+  color: var(--color-spectral);
+  font-variant-numeric: tabular-nums;
+}
+
+.ghost-gallery__control input {
+  width: 100%;
+  margin: 0;
+  accent-color: var(--color-spectral);
+  cursor: pointer;
+}
+
+.ghost-gallery__control input:focus-visible {
+  outline: 3px solid var(--color-ember);
+  outline-offset: 4px;
+}
+
+.ghost-gallery__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr));
+  gap: 0.75rem;
+}
+
+.ghost-figure {
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  margin: 0;
+  padding: 1rem 0.75rem;
+  overflow: hidden;
+  border: 1px solid color-mix(in srgb, var(--ghost-color) 28%, transparent);
+  border-radius: 1rem;
+  background: var(--color-surface);
+  color: var(--ghost-color, var(--color-spectral));
+}
+
+.ghost-figure--murmur,
+.ghost-figure--apparition,
+.ghost-figure--inconclusive {
+  --ghost-color: var(--color-spectral);
+}
+
+.ghost-figure--haunting,
+.ghost-figure--broken {
+  --ghost-color: var(--color-violet);
+}
+
+.ghost-figure--kept {
+  --ghost-color: var(--color-ember);
+}
+
+.ghost-figure__motion {
+  width: min(100%, 7.5rem);
+  transform-origin: 50% 60%;
+  will-change: transform, opacity, filter;
+}
+
+.ghost-figure__svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+  opacity: var(--ghost-opacity);
+}
+
+.ghost-figure__body {
+  fill: currentColor;
+  stroke: var(--color-bone);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
+.ghost-figure__eye {
+  fill: var(--color-bg);
+}
+
+.ghost-figure__mouth,
+.ghost-figure__cheek {
+  fill: none;
+  stroke: var(--color-bg);
+  stroke-width: 4;
+  stroke-linecap: round;
+}
+
+.ghost-figure__cheek {
+  stroke-width: 2;
+}
+
+.ghost-figure__caption {
+  display: flex;
+  gap: 0.45rem;
+  align-items: center;
+  min-height: 2.5rem;
+  color: var(--color-text);
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.ghost-figure[data-animation='flicker'] .ghost-figure__motion {
+  animation: ghost-flicker 2.6s steps(1, end) infinite;
+}
+
+.ghost-figure[data-animation='float'] .ghost-figure__motion {
+  animation: ghost-float 4.5s ease-in-out infinite;
+}
+
+.ghost-figure[data-animation='float-fast'] .ghost-figure__motion {
+  animation: ghost-float-fast 1.8s ease-in-out infinite;
+  filter: drop-shadow(0 0 0.7rem color-mix(in srgb, var(--color-ember) 70%, transparent));
+}
+
+.ghost-figure[data-animation='solid'] .ghost-figure__motion {
+  animation: ghost-solid 1ms linear both;
+  filter: drop-shadow(0 0 1rem color-mix(in srgb, var(--color-ember) 75%, transparent));
+}
+
+.ghost-figure[data-animation='sink'] .ghost-figure__motion {
+  animation: ghost-sink 5s ease-in infinite;
+}
+
+.ghost-figure[data-animation='fade'] .ghost-figure__motion {
+  animation: ghost-fade 4s ease-in-out infinite alternate;
+}
+
+@keyframes ghost-flicker {
+  0%, 18%, 22%, 65%, 100% { opacity: 1; }
+  20%, 63% { opacity: 0.55; }
+}
+
+@keyframes ghost-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-0.55rem); }
+}
+
+@keyframes ghost-float-fast {
+  0%, 100% { transform: translateY(0) rotate(-1deg); }
+  50% { transform: translateY(-0.75rem) rotate(1deg); }
+}
+
+@keyframes ghost-solid {
+  from, to { transform: none; }
+}
+
+@keyframes ghost-sink {
+  0%, 15% { opacity: 1; transform: translateY(0); }
+  85%, 100% { opacity: 0; transform: translateY(3.5rem); }
+}
+
+@keyframes ghost-fade {
+  from { opacity: 1; }
+  to { opacity: 0.2; }
+}
+
+@media (min-width: 40rem) {
+  .ghost-gallery__heading {
+    grid-template-columns: 1fr minmax(12rem, 18rem);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ghost-figure__motion {
+    animation: none !important;
+    transform: none !important;
+    transition: none !important;
+  }
+}

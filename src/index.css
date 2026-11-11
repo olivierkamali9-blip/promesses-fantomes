@@ -1,9 +1,22 @@
 :root {
-  color: #e8e6f0;
-  background: #0b0914;
-  font-family: Inter, system-ui, sans-serif;
+  --color-bg: #0b0914;
+  --color-surface: #14101f;
+  --color-text: #e8e6f0;
+  --color-muted: #9a94b0;
+  --color-spectral: #7cffc4;
+  --color-violet: #8b5cf6;
+  --color-ember: #ff8a4c;
+  --color-bone: #d8d2c2;
+  --color-danger: #ff5c7a;
+  --font-display: "Cormorant Garamond", Georgia, serif;
+  --font-body: Inter, system-ui, sans-serif;
+
+  color: var(--color-text);
+  background: var(--color-bg);
+  font-family: var(--font-body);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
+  color-scheme: dark;
 }
 
 * {
@@ -14,21 +27,49 @@ body {
   min-width: 320px;
   min-height: 100vh;
   margin: 0;
+  background:
+    radial-gradient(circle at 50% 0%, rgb(139 92 246 / 12%), transparent 28rem),
+    var(--color-bg);
 }
 
-main {
-  width: min(100% - 2rem, 40rem);
+button,
+input {
+  font: inherit;
+}
+
+.app-shell {
+  width: min(100% - 2rem, 68rem);
   margin-inline: auto;
-  padding-block: 4rem;
+  padding-block: clamp(2.5rem, 8vw, 5rem);
 }
 
-h1 {
-  margin: 0 0 1rem;
-  color: #7cffc4;
-  font-family: "Cormorant Garamond", Georgia, serif;
+.app-header {
+  max-width: 42rem;
+  margin-bottom: clamp(2.5rem, 7vw, 4.5rem);
 }
 
-p {
-  color: #9a94b0;
+.app-header__eyebrow {
+  margin: 0 0 0.5rem;
+  color: var(--color-ember);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.app-header h1 {
+  margin: 0;
+  color: var(--color-spectral);
+  font-family: var(--font-display);
+  font-size: clamp(2.75rem, 13vw, 5.25rem);
+  font-weight: 700;
+  line-height: 0.9;
+}
+
+.app-header > p:last-child {
+  max-width: 36rem;
+  margin: 1rem 0 0;
+  color: var(--color-muted);
+  font-size: clamp(1rem, 3vw, 1.125rem);
   line-height: 1.6;
 }
