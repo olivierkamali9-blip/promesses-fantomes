@@ -29,15 +29,31 @@ describe('safety examples', () => {
     )
   })
 
+  it('matches multi-word phrases across non-letter separators', () => {
+    expect(classifyByRules("Annonce d'un coup-d’État").tier).toBe('RED')
+  })
+
+  it('matches keywords as whole words only', () => {
+    expect(classifyByRules('effectuer des travaux').tier).not.toBe('BLOCKED')
+    expect(classifyByRules('skill').tier).not.toBe('BLOCKED')
+  })
+
   it('gives blocked rules priority over red and orange rules', () => {
     expect(
       classifyByRules('Un ministre parle de guerre et appelle à tuer').tier,
     ).toBe('BLOCKED')
   })
 
-  it('classifies orange and green text', () => {
-    expect(classifyByRules('The celebrity made a pledge').tier).toBe('ORANGE')
-    expect(classifyByRules('Le club jouera la finale samedi').tier).toBe('GREEN')
+  it('returns green only for sport or schedule text', () => {
+    expect(classifyByRules('FC Démo gagne le match').tier).toBe('GREEN')
+  })
+
+  it('fails closed to orange for unknown text', () => {
+    expect(classifyByRules('Un texte totalement inconnu').tier).toBe('ORANGE')
+  })
+
+  it('gives orange rules priority over green rules', () => {
+    expect(classifyByRules('Le ministre regarde le match').tier).toBe('ORANGE')
   })
 
   it('returns the product approval policies', () => {

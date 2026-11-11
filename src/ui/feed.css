@@ -1,0 +1,244 @@
+.feed {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.feed__heading {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.feed__eyebrow {
+  margin: 0 0 0.25rem;
+  color: var(--color-ember);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.feed__heading h2 {
+  margin: 0;
+  color: var(--color-bone);
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 9vw, 3rem);
+  line-height: 1;
+}
+
+.feed__heading > p {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.feed__tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  padding: 0.25rem;
+  border: 1px solid rgb(216 210 194 / 16%);
+  border-radius: 0.85rem;
+  background: rgb(20 16 31 / 80%);
+}
+
+.feed__tabs button {
+  min-height: 2.75rem;
+  border: 0;
+  border-radius: 0.65rem;
+  color: var(--color-muted);
+  background: transparent;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.feed__tabs button[aria-selected='true'] {
+  color: var(--color-bg);
+  background: var(--color-spectral);
+}
+
+.feed__tabs button:focus-visible,
+.app-view-link:focus-visible {
+  outline: 3px solid var(--color-ember);
+  outline-offset: 3px;
+}
+
+.feed__list {
+  display: grid;
+  gap: 1rem;
+}
+
+.pledge-card {
+  min-width: 0;
+  padding: 1rem;
+  border: 1px solid rgb(216 210 194 / 14%);
+  border-radius: 1rem;
+  background: var(--color-surface);
+  box-shadow: 0 0.75rem 2rem rgb(0 0 0 / 18%);
+}
+
+.pledge-card__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  align-items: center;
+  margin-bottom: 0.85rem;
+}
+
+.pledge-card__fictional,
+.pledge-card__tier {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.65rem;
+  padding: 0.25rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.pledge-card__fictional {
+  border: 1px solid rgb(124 255 196 / 45%);
+  color: var(--color-spectral);
+  background: rgb(124 255 196 / 8%);
+}
+
+.pledge-card__tier--green {
+  color: var(--color-spectral);
+  background: rgb(124 255 196 / 11%);
+}
+
+.pledge-card__tier--orange {
+  color: var(--color-ember);
+  background: rgb(255 138 76 / 12%);
+}
+
+.pledge-card__tier--red {
+  color: var(--color-danger);
+  background: rgb(255 92 122 / 12%);
+}
+
+.pledge-card__summary {
+  display: grid;
+  grid-template-columns: 4.75rem minmax(0, 1fr);
+  gap: 0.85rem;
+  align-items: center;
+}
+
+.pledge-card h3 {
+  margin: 0;
+  color: var(--color-text);
+  font-family: var(--font-display);
+  font-size: clamp(1.3rem, 6vw, 1.7rem);
+  line-height: 1.08;
+}
+
+.pledge-card__countdown {
+  display: block;
+  margin-top: 0.55rem;
+  color: var(--color-ember);
+  font-size: 0.78rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.pledge-card__stakes {
+  margin-top: 1rem;
+}
+
+.pledge-card__stake-labels {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 0.4rem;
+  color: var(--color-muted);
+  font-size: 0.67rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.pledge-card__stake-labels strong {
+  color: var(--color-text);
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.pledge-card__split {
+  display: flex;
+  height: 0.55rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgb(154 148 176 / 18%);
+}
+
+.pledge-card__split-kept {
+  width: var(--kept-share);
+  background: var(--color-spectral);
+}
+
+.pledge-card__split-broken {
+  flex: 1;
+  background: var(--color-violet);
+}
+
+.pledge-card__evidence {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+  margin-top: 0.85rem;
+}
+
+.pledge-card__evidence-label {
+  color: var(--color-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.pledge-card__evidence ol {
+  display: flex;
+  flex: 1;
+  gap: 0.3rem;
+  justify-content: flex-end;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.pledge-card__evidence li {
+  display: grid;
+  place-items: center;
+  min-width: 2rem;
+  min-height: 1.7rem;
+  border: 1px solid rgb(154 148 176 / 30%);
+  border-radius: 0.45rem;
+  color: var(--color-muted);
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+
+.pledge-card__evidence li.pledge-card__evidence-current {
+  border-color: var(--color-spectral);
+  color: var(--color-bg);
+  background: var(--color-spectral);
+}
+
+@media (min-width: 42rem) {
+  .feed__heading {
+    grid-template-columns: 1fr auto;
+    align-items: end;
+  }
+
+  .feed__list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .feed *,
+  .feed *::before,
+  .feed *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}

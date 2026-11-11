@@ -1,24 +1,65 @@
-import type { CSSProperties } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 import type { LifecycleState } from '../engine/lifecycle'
-import { ghostVisual } from './ghostProps'
+import { ghostVisual, type GhostIcon } from './ghostProps'
 import './ghost.css'
 
 type GhostFigureProps = {
   state: LifecycleState
   evidenceLevel: number
+  compact?: boolean
 }
 
 type GhostStyle = CSSProperties & {
   '--ghost-opacity': number
 }
 
-export function GhostFigure({ state, evidenceLevel }: GhostFigureProps) {
+function StateIcon({ icon }: { icon: GhostIcon }) {
+  let shape: ReactNode
+
+  switch (icon) {
+    case 'mist':
+      shape = <path d="M3 7h11M6 11h11M3 15h9" />
+      break
+    case 'apparition':
+      shape = <path d="M5 17V9a5 5 0 0 1 10 0v8l-2-2-3 2-3-2-2 2Zm3-8h.01M12 9h.01" />
+      break
+    case 'flame':
+      shape = <path d="M10 18c3 0 5-2 5-5 0-2-1-4-4-7 0 3-2 4-3 2-2 2-3 4-3 5 0 3 2 5 5 5Z" />
+      break
+    case 'check':
+      shape = <path d="m4 10 4 4 8-9" />
+      break
+    case 'crack':
+      shape = <path d="m11 2-4 7 4 2-3 7M3 18h14" />
+      break
+    case 'question':
+      shape = <path d="M7 7a3 3 0 1 1 4 3c-1 .5-1 1-1 2M10 16h.01" />
+      break
+  }
+
+  return (
+    <svg
+      className="ghost-figure__state-icon"
+      viewBox="0 0 20 20"
+      aria-hidden="true"
+      focusable="false"
+    >
+      {shape}
+    </svg>
+  )
+}
+
+export function GhostFigure({
+  state,
+  evidenceLevel,
+  compact = false,
+}: GhostFigureProps) {
   const visual = ghostVisual(state, evidenceLevel)
   const style: GhostStyle = { '--ghost-opacity': visual.opacity }
 
   return (
     <figure
-      className={`ghost-figure ghost-figure--${state.toLowerCase()}`}
+      className={`ghost-figure ghost-figure--${state.toLowerCase()}${compact ? ' ghost-figure--compact' : ''}`}
       aria-label={`Fantôme : ${visual.label}`}
       data-animation={visual.animation}
       style={style}
@@ -46,7 +87,7 @@ export function GhostFigure({ state, evidenceLevel }: GhostFigureProps) {
         </svg>
       </div>
       <figcaption className="ghost-figure__caption">
-        <span aria-hidden="true">{visual.icon}</span>
+        <StateIcon icon={visual.icon} />
         <span>{visual.label}</span>
       </figcaption>
     </figure>

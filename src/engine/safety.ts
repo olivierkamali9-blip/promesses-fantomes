@@ -1,5 +1,6 @@
 import {
   BLOCKED_KEYWORDS,
+  GREEN_KEYWORDS,
   ORANGE_KEYWORDS,
   RED_KEYWORDS,
 } from './safety.rules'
@@ -24,25 +25,37 @@ const TIER_ORDER: Record<SafetyTier, number> = {
   BLOCKED: 3,
 }
 
-function normalizeText(text: string): string {
+function tokenize(text: string): string[] {
   return text
     .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\p{M}/gu, '')
     .toLocaleLowerCase('fr')
+    .split(/[^\p{L}]+/u)
+    .filter((token) => token.length > 0)
 }
 
-function findKeyword(
-  normalizedText: string,
-  keywords: readonly string[],
-): string | undefined {
-  return keywords.find((keyword) =>
-    normalizedText.includes(normalizeText(keyword)),
+function containsSequence(tokens: readonly string[], sequence: readonly string[]) {
+  if (sequence.length === 0 || sequence.length > tokens.length) {
+    return false
+  }
+
+  return tokens.some((_, startIndex) =>
+    sequence.every(
+      (sequenceToken, offset) => tokens[startIndex + offset] === sequenceToken,
+    ),
   )
 }
 
+function findKeyword(
+  tokens: readonly string[],
+  keywords: readonly string[],
+): string | undefined {
+  return keywords.find((keyword) => containsSequence(tokens, tokenize(keyword)))
+}
+
 export function classifyByRules(text: string): SafetyClassification {
-  const normalizedText = normalizeText(text)
-  const blockedKeyword = findKeyword(normalizedText, BLOCKED_KEYWORDS)
+  const tokens = tokenize(text)
+  const blockedKeyword = findKeyword(tokens, BLOCKED_KEYWORDS)
 
   if (blockedKeyword !== undefined) {
     return {
@@ -51,7 +64,7 @@ export function classifyByRules(text: string): SafetyClassification {
     }
   }
 
-  const redKeyword = findKeyword(normalizedText, RED_KEYWORDS)
+  const redKeyword = findKeyword(tokens, RED_KEYWORDS)
 
   if (redKeyword !== undefined) {
     return {
@@ -60,7 +73,7 @@ export function classifyByRules(text: string): SafetyClassification {
     }
   }
 
-  const orangeKeyword = findKeyword(normalizedText, ORANGE_KEYWORDS)
+  const orangeKeyword = findKeyword(tokens, ORANGE_KEYWORDS)
 
   if (orangeKeyword !== undefined) {
     return {
@@ -69,9 +82,18 @@ export function classifyByRules(text: string): SafetyClassification {
     }
   }
 
+  const greenKeyword = findKeyword(tokens, GREEN_KEYWORDS)
+
+  if (greenKeyword !== undefined) {
+    return {
+      tier: 'GREEN',
+      reason: `Sport or schedule keyword: ${greenKeyword}`,
+    }
+  }
+
   return {
-    tier: 'GREEN',
-    reason: 'No safety keyword matched',
+    tier: 'ORANGE',
+    reason: 'No safety or sport/schedule keyword matched',
   }
 }
 

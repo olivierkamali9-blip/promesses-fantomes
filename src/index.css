@@ -66,10 +66,22 @@ input {
   line-height: 0.9;
 }
 
-.app-header > p:last-child {
+.app-header > p:not(.app-header__eyebrow) {
   max-width: 36rem;
   margin: 1rem 0 0;
   color: var(--color-muted);
   font-size: clamp(1rem, 3vw, 1.125rem);
   line-height: 1.6;
+}
+
+.app-view-link {
+  margin-top: 1rem;
+  padding: 0.25rem 0;
+  border: 0;
+  border-bottom: 1px solid currentColor;
+  color: var(--color-spectral);
+  background: transparent;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
 }

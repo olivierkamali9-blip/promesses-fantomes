@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 import fc from 'fast-check'
-import { settlePledge, type Side, type Stake } from './souls'
+import {
+  poolPercentages,
+  settlePledge,
+  type Side,
+  type Stake,
+} from './souls'
 
 const sideArbitrary: fc.Arbitrary<Side> = fc.constantFrom('KEPT', 'BROKEN')
 const stakeArbitrary: fc.Arbitrary<Stake> = fc.record({
@@ -47,6 +52,22 @@ describe('settlePledge examples', () => {
     expect(() => settlePledge([{ ...validStake, amount: 0 }], 'KEPT')).toThrow()
     expect(() => settlePledge([{ ...validStake, amount: -1 }], 'KEPT')).toThrow()
     expect(() => settlePledge([{ ...validStake, amount: 1.5 }], 'KEPT')).toThrow()
+  })
+})
+
+describe('poolPercentages properties', () => {
+  it('always returns KEPT and BROKEN percentages adding up to exactly 100', () => {
+    fc.assert(
+      fc.property(
+        fc.nat({ max: 1_000_000 }),
+        fc.nat({ max: 1_000_000 }),
+        (kept, broken) => {
+          const percentages = poolPercentages({ KEPT: kept, BROKEN: broken })
+
+          expect(percentages.KEPT + percentages.BROKEN).toBe(100)
+        },
+      ),
+    )
   })
 })
 

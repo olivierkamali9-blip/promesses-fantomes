@@ -1,16 +1,17 @@
 # Session Notes
 
 ## Done
-- Completed task 7 with the pure `ghostVisual` presentation mapping and property-based tests.
-- Added the accessible inline SVG `GhostFigure`, CSS-only state animations, reduced-motion support, and the six-state gallery.
-- Added the design tokens, responsive dark theme, and Google Fonts.
-- Verified 31 tests pass and the production build succeeds at 145.35 kB of initial JavaScript.
-- No commit was created because this session explicitly prohibited Git commands.
+- Hardened safety matching with NFD normalization, diacritic stripping, Unicode letter tokenization, whole-word matching, and multi-word phrase support.
+- Added separately reviewed French, English, Swahili, and Lingala safety keyword lists, plus explicit sport/schedule GREEN keywords.
+- Changed unknown text to fail closed as ORANGE and preserved BLOCKED > RED > ORANGE > GREEN priority.
+- Added the requested regression tests and kept the P7 fast-check property tests.
+- Ran `npm.cmd test -- --run`; Vitest started, but the environment terminated Node with exit code `-1` before reporting any tests or errors. The same result occurred in a separate execution agent.
+- No Git command was run, as explicitly requested.
 
 ## Next
-Task 8: build the Feed and PledgeCard in fixture-backed demo mode.
+Re-run the test suite in a working Node terminal and confirm all tests pass.
 
 ## Next steps
-1. Define the demo pledge fixture and presentation data contract.
-2. Build `PledgeCard` using engine-derived state and evidence values.
-3. Assemble the mobile-first Feed with loading, empty, and error states.
+1. Run `npm.cmd test -- --run` locally and capture the Vitest summary.
+2. If Node still exits with `-1`, retry with a supported LTS Node version for Vitest 1.
+3. Review the Swahili and Lingala keyword lists with native speakers.

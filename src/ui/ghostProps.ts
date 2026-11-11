@@ -8,11 +8,19 @@ export type GhostAnimation =
   | 'sink'
   | 'fade'
 
+export type GhostIcon =
+  | 'mist'
+  | 'apparition'
+  | 'flame'
+  | 'check'
+  | 'crack'
+  | 'question'
+
 export type GhostVisual = {
   opacity: number
   animation: GhostAnimation
   label: string
-  icon: string
+  icon: GhostIcon
 }
 
 const OPACITY_BY_LEVEL = [0.25, 0.4, 0.6, 0.8, 1] as const
@@ -21,12 +29,20 @@ const VISUAL_BY_STATE: Record<
   LifecycleState,
   Omit<GhostVisual, 'opacity'>
 > = {
-  MURMUR: { animation: 'flicker', label: 'Murmure', icon: '🌫️' },
-  APPARITION: { animation: 'float', label: 'Apparition', icon: '👻' },
-  HAUNTING: { animation: 'float-fast', label: 'Hantise', icon: '🕯️' },
-  KEPT: { animation: 'solid', label: 'Promesse tenue', icon: '✨' },
-  BROKEN: { animation: 'sink', label: 'Promesse rompue', icon: '🪦' },
-  INCONCLUSIVE: { animation: 'fade', label: 'Sans verdict', icon: '❔' },
+  MURMUR: { animation: 'flicker', label: 'Murmure', icon: 'mist' },
+  APPARITION: {
+    animation: 'float',
+    label: 'Apparition',
+    icon: 'apparition',
+  },
+  HAUNTING: { animation: 'float-fast', label: 'Hantise', icon: 'flame' },
+  KEPT: { animation: 'solid', label: 'Promesse tenue', icon: 'check' },
+  BROKEN: { animation: 'sink', label: 'Promesse rompue', icon: 'crack' },
+  INCONCLUSIVE: {
+    animation: 'fade',
+    label: 'Sans verdict',
+    icon: 'question',
+  },
 }
 
 function clampEvidenceLevel(level: number): number {

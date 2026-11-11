@@ -19,6 +19,30 @@ type WinnerShare = {
   remainder: bigint
 }
 
+export type PoolPercentages = Record<Side, number>
+
+export function poolPercentages(
+  pools: Readonly<Record<Side, number>>,
+): PoolPercentages {
+  if (
+    !Number.isSafeInteger(pools.KEPT) ||
+    !Number.isSafeInteger(pools.BROKEN) ||
+    pools.KEPT < 0 ||
+    pools.BROKEN < 0
+  ) {
+    throw new Error('Stake pools must be non-negative safe integers')
+  }
+
+  const total = pools.KEPT + pools.BROKEN
+
+  if (total === 0) {
+    return { KEPT: 50, BROKEN: 50 }
+  }
+
+  const kept = Math.round((pools.KEPT * 100) / total)
+  return { KEPT: kept, BROKEN: 100 - kept }
+}
+
 export function settlePledge(stakes: Stake[], winningSide: Side): Settlement {
   for (const stake of stakes) {
     if (!Number.isInteger(stake.amount) || stake.amount <= 0) {
