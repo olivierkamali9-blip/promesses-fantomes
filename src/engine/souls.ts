@@ -12,6 +12,8 @@ export type Settlement = {
   payouts: number[]
 }
 
+export type SettlementOutcome = Side | 'INCONCLUSIVE'
+
 type WinnerShare = {
   index: number
   at: number
@@ -43,10 +45,20 @@ export function poolPercentages(
   return { KEPT: kept, BROKEN: 100 - kept }
 }
 
-export function settlePledge(stakes: Stake[], winningSide: Side): Settlement {
+export function settlePledge(
+  stakes: Stake[],
+  winningSide: SettlementOutcome,
+): Settlement {
   for (const stake of stakes) {
     if (!Number.isInteger(stake.amount) || stake.amount <= 0) {
       throw new Error('Stake amounts must be positive integers')
+    }
+  }
+
+  if (winningSide === 'INCONCLUSIVE') {
+    return {
+      kind: 'REFUND',
+      payouts: stakes.map((stake) => stake.amount),
     }
   }
 

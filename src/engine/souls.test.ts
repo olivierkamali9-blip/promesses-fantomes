@@ -46,6 +46,18 @@ describe('settlePledge examples', () => {
     })
   })
 
+  it('refunds every stake when the outcome is inconclusive', () => {
+    const stakes: Stake[] = [
+      { userId: 'one', side: 'KEPT', amount: 2, at: 1 },
+      { userId: 'two', side: 'BROKEN', amount: 3, at: 2 },
+    ]
+
+    expect(settlePledge(stakes, 'INCONCLUSIVE')).toEqual({
+      kind: 'REFUND',
+      payouts: [2, 3],
+    })
+  })
+
   it('rejects non-positive and non-integer stake amounts', () => {
     const validStake = { userId: 'one', side: 'KEPT' as const, at: 1 }
 

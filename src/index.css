@@ -85,3 +85,31 @@ input {
   font-weight: 700;
   cursor: pointer;
 }
+.route-error {
+  padding: 1rem;
+  border: 1px solid rgb(255 92 122 / 35%);
+  border-radius: 1rem;
+  background: var(--color-surface);
+}
+
+.route-error h2 {
+  margin: 0 0 1rem;
+  color: var(--color-bone);
+  font-family: var(--font-display);
+}
+
+.route-error button {
+  min-height: 2.75rem;
+  padding: 0.45rem 0.75rem;
+  border: 1px solid var(--color-spectral);
+  border-radius: 0.65rem;
+  color: var(--color-bg);
+  background: var(--color-spectral);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.route-error button:focus-visible {
+  outline: 3px solid var(--color-ember);
+  outline-offset: 3px;
+}
