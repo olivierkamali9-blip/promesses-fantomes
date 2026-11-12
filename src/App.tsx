@@ -1,9 +1,22 @@
-import { useEffect, useState } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { useGame } from './state/useGame'
-import { ApprovalQueue } from './ui/ApprovalQueue'
 import { Feed } from './ui/Feed'
-import { GhostGallery } from './ui/GhostGallery'
 import { PledgePage } from './ui/PledgePage'
+import { selectBrokenPledges } from './ui/cemeteryProps'
+
+const ApprovalQueue = lazy(() =>
+  import('./ui/ApprovalQueue').then((module) => ({
+    default: module.ApprovalQueue,
+  })),
+)
+const Cemetery = lazy(() =>
+  import('./ui/Cemetery').then((module) => ({ default: module.Cemetery })),
+)
+const GhostGallery = lazy(() =>
+  import('./ui/GhostGallery').then((module) => ({
+    default: module.GhostGallery,
+  })),
+)
 
 function pledgeIdFromHash(hash: string): string | null {
   const match = /^#\/promesse\/([^/]+)$/.exec(hash)
@@ -50,6 +63,9 @@ function App() {
 
   const pledgeId = pledgeIdFromHash(hash)
   const isGuardian = hash === '#/gardien'
+  const isCemetery = hash === '#/cimetiere'
+  const isSecondaryRoute = isGuardian || isCemetery
+  const cemeteryCount = selectBrokenPledges(state.pledges).length
   const pledge = pledgeId
     ? state.pledges.find((candidate) => candidate.id === pledgeId)
     : undefined
@@ -81,12 +97,19 @@ function App() {
               {state.draftsQueue.length}
             </span>
           </a>
-          {isGuardian && (
+          <a
+            className="app-view-link"
+            href="#/cimetiere"
+            aria-current={isCemetery ? 'page' : undefined}
+          >
+            Cimetière
+          </a>
+          {isSecondaryRoute && (
             <a className="app-view-link" href="#/">
               Retour au fil
             </a>
           )}
-          {!pledgeId && !isGuardian && (
+          {!pledgeId && !isSecondaryRoute && (
             <button
               className="app-view-link"
               type="button"
@@ -99,44 +122,59 @@ function App() {
         </nav>
       </header>
 
-      {pledgeId ? (
-        pledge ? (
-          <PledgePage
-            pledge={pledge}
-            player={state.player}
-            result={state.resolutions[pledge.id]}
-            onBack={returnToFeed}
-            onStake={stake}
-            isVerifying={verifyingPledgeIds.includes(pledge.id)}
-            onRunVerifiers={runPledgeVerifiers}
-            onHumanResolve={humanResolve}
-            onHumanOverride={humanOverride}
+      <Suspense
+        fallback={(
+          <div className="haunted-loading" role="status" aria-live="polite">
+            <span aria-hidden="true">◌</span>
+            <p>Les esprits ouvrent les archives…</p>
+          </div>
+        )}
+      >
+        {pledgeId ? (
+          pledge ? (
+            <PledgePage
+              pledge={pledge}
+              player={state.player}
+              result={state.resolutions[pledge.id]}
+              onBack={returnToFeed}
+              onStake={stake}
+              isVerifying={verifyingPledgeIds.includes(pledge.id)}
+              onRunVerifiers={runPledgeVerifiers}
+              onHumanResolve={humanResolve}
+              onHumanOverride={humanOverride}
+            />
+          ) : (
+            <section className="route-error" role="alert">
+              <h2>Cette promesse reste introuvable.</h2>
+              <button type="button" onClick={returnToFeed}>Retour</button>
+            </section>
+          )
+        ) : isGuardian ? (
+          <ApprovalQueue
+            drafts={state.draftsQueue}
+            decisions={state.decisionsLog}
+            isGenerating={isGeneratingDrafts}
+            onGenerate={generateDrafts}
+            onApprove={approveDraft}
+            onEdit={editDraft}
+            onReject={rejectDraft}
           />
+        ) : isCemetery ? (
+          <Cemetery
+            pledges={state.pledges}
+            tombstones={state.tombstones}
+          />
+        ) : showGallery ? (
+          <GhostGallery />
         ) : (
-          <section className="route-error" role="alert">
-            <h2>Cette promesse reste introuvable.</h2>
-            <button type="button" onClick={returnToFeed}>Retour</button>
-          </section>
-        )
-      ) : isGuardian ? (
-        <ApprovalQueue
-          drafts={state.draftsQueue}
-          decisions={state.decisionsLog}
-          isGenerating={isGeneratingDrafts}
-          onGenerate={generateDrafts}
-          onApprove={approveDraft}
-          onEdit={editDraft}
-          onReject={rejectDraft}
-        />
-      ) : showGallery ? (
-        <GhostGallery />
-      ) : (
-        <Feed
-          pledges={state.pledges}
-          playerSouls={state.player.souls}
-          onResetDemo={resetDemo}
-        />
-      )}
+          <Feed
+            pledges={state.pledges}
+            playerSouls={state.player.souls}
+            cemeteryCount={cemeteryCount}
+            onResetDemo={resetDemo}
+          />
+        )}
+      </Suspense>
     </main>
   )
 }

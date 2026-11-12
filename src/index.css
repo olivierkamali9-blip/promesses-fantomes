@@ -148,3 +148,40 @@ input {
 .app-guardian-link[aria-current='page'] {
   color: var(--color-ember);
 }
+
+.app-view-link[aria-current='page'] {
+  color: var(--color-ember);
+}
+
+.haunted-loading {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  min-height: 8rem;
+  padding: 1rem;
+  border: 1px dashed rgb(124 255 196 / 24%);
+  border-radius: 1rem;
+  color: var(--color-muted);
+  background: rgb(124 255 196 / 4%);
+}
+
+.haunted-loading span {
+  color: var(--color-spectral);
+  font-size: 2rem;
+  animation: haunted-loading-pulse 2.5s ease-in-out infinite alternate;
+}
+
+.haunted-loading p {
+  margin: 0;
+}
+
+@keyframes haunted-loading-pulse {
+  from { opacity: 0.35; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .haunted-loading span {
+    animation: none;
+  }
+}

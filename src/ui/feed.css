@@ -32,6 +32,21 @@
   line-height: 1.5;
 }
 
+.feed__cemetery-count {
+  width: fit-content;
+  border-bottom: 1px solid rgb(216 210 194 / 40%);
+  border-radius: 0.2rem;
+  color: var(--color-bone);
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.feed__cemetery-count:focus-visible {
+  outline: 3px solid var(--color-ember);
+  outline-offset: 3px;
+}
+
 .feed__player {
   display: flex;
   flex-wrap: wrap;

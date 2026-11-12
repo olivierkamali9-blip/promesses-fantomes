@@ -51,3 +51,20 @@ Have the GitHub helper run the full test and TypeScript build checks.
 1. Run the Vitest suite with a non-watch command.
 2. Run the TypeScript/Vite production build.
 3. Commit task 12 after those checks pass.
+
+## Session — 2026-11-12 — Task 13
+
+### Done
+- Added the lazy-loaded `#/cimetiere` route with accessible tabs for broken pledges, inconclusive pledges, and recorded AI corrections.
+- Added responsive stone tombstones drawn with inline SVG, evidence chips, state ghosts, calm empty states, French epitaphs, and reduced-motion support.
+- Lazy-loaded the Guardian, Cemetery, and ghost gallery behind a French haunted `Suspense` fallback.
+- Added the home cemetery counter and fast-check properties for safe epitaphs and exact BROKEN-pledge filtering.
+- Did not run tests, build, network calls, or Git commands, as explicitly requested.
+
+### Next
+Have the GitHub helper run the full test and production build checks.
+
+### Next steps
+1. Run the Vitest suite with a non-watch command.
+2. Run the TypeScript/Vite production build.
+3. Commit task 13 after those checks pass.

@@ -9,6 +9,7 @@ type FeedTab = 'open' | 'resolved'
 type FeedProps = {
   pledges: readonly DemoPledge[]
   playerSouls: number
+  cemeteryCount: number
   onResetDemo: () => void
 }
 
@@ -22,7 +23,12 @@ function isResolved(pledge: DemoPledge): boolean {
   return FINAL_STATES.has(pledge.state)
 }
 
-export function Feed({ pledges, playerSouls, onResetDemo }: FeedProps) {
+export function Feed({
+  pledges,
+  playerSouls,
+  cemeteryCount,
+  onResetDemo,
+}: FeedProps) {
   const [activeTab, setActiveTab] = useState<FeedTab>('open')
   const now = new Date()
   const visiblePledges = useMemo(
@@ -56,6 +62,9 @@ export function Feed({ pledges, playerSouls, onResetDemo }: FeedProps) {
       <p className="feed__order-note">
         Les plus proches de leur échéance passent devant.
       </p>
+      <a className="feed__cemetery-count" href="#/cimetiere">
+        {cemeteryCount} promesses au cimetière
+      </a>
 
       <div className="feed__tabs" role="tablist" aria-label="Filtrer les promesses">
         <button
