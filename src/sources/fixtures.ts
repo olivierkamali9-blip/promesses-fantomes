@@ -43,4 +43,4 @@ export const FIXTURE_NEWS = [
       'Scénario de démonstration fictif : cet exercice éditorial ne décrit aucun événement réel.',
     publishedAt: '2026-10-15T10:20:00.000Z',
   },
-] as const satisfies readonly Candidate[]
+] as const satisfies readonly Candidate[] 
