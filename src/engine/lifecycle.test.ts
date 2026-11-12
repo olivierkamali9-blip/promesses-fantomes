@@ -2,6 +2,7 @@ import fc from 'fast-check'
 import { describe, expect, it } from 'vitest'
 import {
   applyEvent,
+  resolvePledge,
   timeState,
   type FinalState,
   type LifecycleEvent,
@@ -108,6 +109,36 @@ describe('lifecycle examples', () => {
 })
 
 describe('lifecycle properties', () => {
+  it('resolvePledge returns a final state using the resolution rules', () => {
+    fc.assert(
+      fc.property(
+        stateArbitrary,
+        resolutionOutcomeArbitrary,
+        fc.integer({ min: -2, max: 6 }),
+        (state, outcome, evidenceLevel) => {
+          if (state !== 'APPARITION' && state !== 'HAUNTING') {
+            expect(() => resolvePledge(state, outcome, evidenceLevel)).toThrow()
+            return
+          }
+
+          const result: FinalState = resolvePledge(
+            state,
+            outcome,
+            evidenceLevel,
+          )
+          const expected =
+            outcome !== 'INCONCLUSIVE' &&
+            evidenceLevel !== 3 &&
+            evidenceLevel !== 4
+              ? 'INCONCLUSIVE'
+              : outcome
+
+          expect(result).toBe(expected)
+        },
+      ),
+    )
+  })
+
   it('P5: keeps final states terminal except through a recorded override', () => {
     fc.assert(
       fc.property(

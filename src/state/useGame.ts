@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useReducer } from 'react'
 import { demoPledges, type DemoPledge } from '../data/demoPledges'
 import { evidenceLevel, resolveOutcome, type ProposedOutcome } from '../engine/evidence'
-import { applyEvent, type FinalState } from '../engine/lifecycle'
+import { resolvePledge, type FinalState } from '../engine/lifecycle'
 import { validateStake } from '../engine/stake'
 import { settlePledge, type Side, type Stake } from '../engine/souls'
 
@@ -136,11 +136,7 @@ function simulateResolution(
   const resolution = resolveOutcome(sources, proposedOutcome)
   const requestedOutcome =
     resolution.status === 'RESOLVED' ? resolution.outcome : 'INCONCLUSIVE'
-  const outcome = applyEvent(pledge.state, {
-    type: 'RESOLVE',
-    outcome: requestedOutcome,
-    evidenceLevel: level,
-  })
+  const outcome = resolvePledge(pledge.state, requestedOutcome, level)
   const playerStakes = state.playerStakes.filter(
     (stake) => stake.pledgeId === pledge.id,
   )

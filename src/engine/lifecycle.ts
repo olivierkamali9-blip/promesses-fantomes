@@ -42,6 +42,25 @@ function hasResolvableEvidence(level: number): boolean {
   return (level === 3 || level === 4) && canResolve(level)
 }
 
+export function resolvePledge(
+  state: LifecycleState,
+  outcome: ResolutionOutcome,
+  evidenceLevel: number,
+): FinalState {
+  if (state !== 'APPARITION' && state !== 'HAUNTING') {
+    throw new Error(`Cannot resolve state ${state}`)
+  }
+
+  if (
+    (outcome === 'KEPT' || outcome === 'BROKEN') &&
+    !hasResolvableEvidence(evidenceLevel)
+  ) {
+    return 'INCONCLUSIVE'
+  }
+
+  return outcome
+}
+
 export function applyEvent(
   state: LifecycleState,
   event: ApproveEvent | ResolveEvent,
@@ -74,18 +93,7 @@ export function applyEvent(
     return 'APPARITION'
   }
 
-  if (state !== 'APPARITION' && state !== 'HAUNTING') {
-    throw new Error(`Cannot resolve state ${state}`)
-  }
-
-  if (
-    (event.outcome === 'KEPT' || event.outcome === 'BROKEN') &&
-    !hasResolvableEvidence(event.evidenceLevel)
-  ) {
-    return 'INCONCLUSIVE'
-  }
-
-  return event.outcome
+  return resolvePledge(state, event.outcome, event.evidenceLevel)
 }
 
 const HAUNTING_WINDOW_MS = 24 * 60 * 60 * 1_000
