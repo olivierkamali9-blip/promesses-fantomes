@@ -139,7 +139,8 @@
 }
 
 .pledge-card__fictional,
-.pledge-card__tier {
+.pledge-card__tier,
+.pledge-card__unconfirmed {
   display: inline-flex;
   align-items: center;
   min-height: 1.65rem;
@@ -156,6 +157,12 @@
   border: 1px solid rgb(124 255 196 / 45%);
   color: var(--color-spectral);
   background: rgb(124 255 196 / 8%);
+}
+
+.pledge-card__unconfirmed {
+  border: 1px solid rgb(255 138 76 / 45%);
+  color: var(--color-ember);
+  background: rgb(255 138 76 / 8%);
 }
 
 .pledge-card__tier--green {

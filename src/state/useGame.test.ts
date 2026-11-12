@@ -1,15 +1,20 @@
 import fc from 'fast-check'
 import { describe, expect, it } from 'vitest'
+import { decide } from '../ai/guardian'
+import type { Draft } from '../ai/types'
 import type { DemoPledge } from '../data/demoPledges'
 import {
   evidenceLevel,
   type ProposedOutcome,
   type Source,
 } from '../engine/evidence'
+import type { SafetyTier } from '../engine/safety'
 import type { Side } from '../engine/souls'
 import {
   createInitialGameState,
   gameReducer,
+  type DraftQueueItem,
+  type GameAction,
   type GameState,
 } from './useGame'
 
@@ -155,6 +160,253 @@ describe('simulated resolution properties', () => {
           expect(result.settlementKind).toBe('REFUND')
           result.payouts.forEach((payout) => {
             expect(payout.payout).toBe(payout.stake)
+          })
+        },
+      ),
+    )
+  })
+})
+
+
+const tierArbitrary: fc.Arbitrary<SafetyTier> = fc.constantFrom(
+  'GREEN',
+  'ORANGE',
+  'RED',
+  'BLOCKED',
+)
+
+const editedQuestionArbitrary = fc.constantFrom(
+  'Le club gagnera-t-il le match annoncé ?',
+  'La mairie tiendra-t-elle cette promesse ?',
+  'Le tableau de l’élection sera-t-il publié ?',
+  'Cette religion sera-t-elle mentionnée ?',
+)
+
+type WorkflowActionName =
+  | 'GENERATE_DRAFTS'
+  | 'APPROVE_DRAFT'
+  | 'EDIT_DRAFT'
+  | 'REJECT_DRAFT'
+
+type DraftReviewActionName = Exclude<WorkflowActionName, 'GENERATE_DRAFTS'>
+
+const workflowActionArbitrary: fc.Arbitrary<WorkflowActionName> = fc.constantFrom(
+  'GENERATE_DRAFTS',
+  'APPROVE_DRAFT',
+  'EDIT_DRAFT',
+  'REJECT_DRAFT',
+)
+
+const draftReviewActionArbitrary: fc.Arbitrary<DraftReviewActionName> =
+  fc.constantFrom('APPROVE_DRAFT', 'EDIT_DRAFT', 'REJECT_DRAFT')
+
+function reviewItem(
+  tier: SafetyTier,
+  id = `property-${tier.toLowerCase()}`,
+): DraftQueueItem {
+  const draft: Draft = {
+    question: 'Le club gagnera-t-il le match annoncé ?',
+    criteria: 'La feuille de match fictive désigne le club vainqueur.',
+    deadline: '2099-12-31T18:00:00.000Z',
+    sides: {
+      kept: {
+        argument: 'Le match est inscrit au calendrier.',
+        sourceUrl: 'https://example.org/property-source',
+      },
+      broken: {
+        argument: 'Le calendrier ne garantit pas le résultat.',
+        sourceUrl: 'https://example.org/property-source',
+      },
+    },
+    sources: [
+      {
+        url: 'https://example.org/property-source',
+        kind: 'reliable',
+        independentGroup: 'property-source',
+      },
+    ],
+    modelTier: tier,
+  }
+
+  return {
+    id,
+    candidate: {
+      title: 'Candidat fictif de propriété',
+      sourceUrl: 'https://example.org/property-source',
+      excerpt: 'Scénario fictif.',
+      publishedAt: '2026-01-01T00:00:00.000Z',
+    },
+    draft,
+    decision: decide(draft),
+    createdAt: 1,
+  }
+}
+
+function workflowAction(
+  name: WorkflowActionName,
+  item: DraftQueueItem,
+  at: number,
+): GameAction {
+  if (name === 'GENERATE_DRAFTS') {
+    return { type: name, drafts: [item], at }
+  }
+  if (name === 'APPROVE_DRAFT') {
+    return { type: name, draftId: item.id, at }
+  }
+  if (name === 'EDIT_DRAFT') {
+    return {
+      type: name,
+      draftId: item.id,
+      edits: {
+        question: 'Le club gagnera-t-il le match modifié ?',
+        criteria: item.draft.criteria,
+        deadline: item.draft.deadline,
+      },
+      at,
+    }
+  }
+  return {
+    type: name,
+    draftId: item.id,
+    reason: 'Décision humaine motivée.',
+    at,
+  }
+}
+
+describe('approval queue properties', () => {
+  it('never lets a BLOCKED draft reach the feed in any action sequence', () => {
+    fc.assert(
+      fc.property(
+        fc.array(workflowActionArbitrary, { maxLength: 40 }),
+        (actionNames) => {
+          const blocked = reviewItem('BLOCKED')
+          let state = gameReducer(createInitialGameState(), {
+            type: 'GENERATE_DRAFTS',
+            drafts: [blocked],
+            at: 1,
+          })
+
+          actionNames.forEach((name, index) => {
+            state = gameReducer(state, workflowAction(name, blocked, index + 2))
+            expect(state.pledges.some((pledge) => pledge.id === blocked.id)).toBe(false)
+          })
+
+          expect(
+            state.decisionsLog.some((entry) =>
+              entry.subjects.some(
+                (subject) =>
+                  subject.draftId === blocked.id && subject.tier === 'BLOCKED',
+              ),
+            ),
+          ).toBe(true)
+        },
+      ),
+    )
+  })
+
+  it('never lowers the tier when a human edits a draft', () => {
+    const tierOrder: Record<SafetyTier, number> = {
+      GREEN: 0,
+      ORANGE: 1,
+      RED: 2,
+      BLOCKED: 3,
+    }
+
+    fc.assert(
+      fc.property(tierArbitrary, editedQuestionArbitrary, (tier, question) => {
+        const item = reviewItem(tier)
+        const initial: GameState = {
+          ...createInitialGameState(),
+          draftsQueue: [item],
+        }
+        const edited = gameReducer(initial, {
+          type: 'EDIT_DRAFT',
+          draftId: item.id,
+          edits: {
+            question,
+            criteria: item.draft.criteria,
+            deadline: item.draft.deadline,
+          },
+          at: 2,
+        })
+        const loggedTier = edited.decisionsLog[0].subjects[0].tier
+
+        expect(tierOrder[loggedTier]).toBeGreaterThanOrEqual(
+          tierOrder[item.decision.tier],
+        )
+      }),
+    )
+  })
+
+  it('leaves the state unchanged when a review action targets an unknown draft', () => {
+    fc.assert(
+      fc.property(
+        draftReviewActionArbitrary,
+        fc.string().filter((draftId) => draftId !== 'known-draft'),
+        (actionName, unknownDraftId) => {
+          const known = reviewItem('RED', 'known-draft')
+          const unknown = reviewItem('RED', unknownDraftId)
+          const initial: GameState = {
+            ...createInitialGameState(),
+            draftsQueue: [known],
+          }
+
+          const result = gameReducer(
+            initial,
+            workflowAction(actionName, unknown, 2),
+          )
+
+          expect(result).toBe(initial)
+        },
+      ),
+    )
+  })
+
+  it('logs known workflow actions and ignores missing review targets', () => {
+    fc.assert(
+      fc.property(
+        fc.array(workflowActionArbitrary, { minLength: 1, maxLength: 50 }),
+        (actionNames) => {
+          const red = reviewItem('RED')
+          let state: GameState = {
+            ...createInitialGameState(),
+            draftsQueue: [red],
+          }
+
+          actionNames.forEach((name, index) => {
+            const previousState = state
+            const previousLength = state.decisionsLog.length
+            const targetExists = state.draftsQueue.some(
+              (draft) => draft.id === red.id,
+            )
+            state = gameReducer(state, workflowAction(name, red, index + 1))
+
+            if (name !== 'GENERATE_DRAFTS' && !targetExists) {
+              expect(state).toBe(previousState)
+            } else {
+              expect(state.decisionsLog).toHaveLength(previousLength + 1)
+            }
+          })
+        },
+      ),
+    )
+  })
+
+  it('never publishes a RED draft before APPROVE_DRAFT', () => {
+    const preApprovalActionArbitrary = fc.constantFrom<
+      'GENERATE_DRAFTS' | 'EDIT_DRAFT' | 'REJECT_DRAFT'
+    >('GENERATE_DRAFTS', 'EDIT_DRAFT', 'REJECT_DRAFT')
+
+    fc.assert(
+      fc.property(
+        fc.array(preApprovalActionArbitrary, { maxLength: 40 }),
+        (actionNames) => {
+          const red = reviewItem('RED')
+          let state = createInitialGameState()
+
+          actionNames.forEach((name, index) => {
+            state = gameReducer(state, workflowAction(name, red, index + 1))
+            expect(state.pledges.some((pledge) => pledge.id === red.id)).toBe(false)
           })
         },
       ),

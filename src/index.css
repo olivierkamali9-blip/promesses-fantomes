@@ -113,3 +113,38 @@ input {
   outline: 3px solid var(--color-ember);
   outline-offset: 3px;
 }
+
+.app-header__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+  align-items: center;
+  margin-top: 1rem;
+}
+
+.app-header__actions .app-view-link {
+  margin-top: 0;
+  text-decoration: none;
+}
+
+.app-guardian-link {
+  display: inline-flex;
+  gap: 0.45rem;
+  align-items: center;
+}
+
+.app-guardian-link__badge {
+  display: inline-grid;
+  min-width: 1.45rem;
+  min-height: 1.45rem;
+  place-items: center;
+  border-radius: 999px;
+  color: var(--color-bg);
+  background: var(--color-spectral);
+  font-size: 0.68rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.app-guardian-link[aria-current='page'] {
+  color: var(--color-ember);
+}

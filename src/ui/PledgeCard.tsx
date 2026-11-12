@@ -42,6 +42,9 @@ export function PledgeCard({ pledge, state, now, href }: PledgeCardProps) {
           >
             Risque : {TIER_LABELS[pledge.tier]}
           </span>
+          {pledge.unconfirmed && (
+            <span className="pledge-card__unconfirmed">Non confirmé</span>
+          )}
         </div>
 
         <div className="pledge-card__summary">

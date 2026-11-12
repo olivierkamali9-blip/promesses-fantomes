@@ -17,3 +17,19 @@ Re-run the exact test and build commands in a working Node terminal to obtain co
 1. Run `npm.cmd test -- --run` and confirm all tests, including P6 and P7, pass.
 2. Run `npm.cmd run build` and confirm TypeScript and Vite complete successfully.
 3. Continue with task 11 by connecting Guardian decisions to the approval queue UI.
+
+## Session — 2026-11-12
+
+### Done
+- Added early unchanged-state returns for unknown draft IDs in `APPROVE_DRAFT`, `EDIT_DRAFT`, and `REJECT_DRAFT`.
+- Added a fast-check property covering all three review actions and arbitrary unknown draft IDs, with reference identity checked through `toBe`.
+- Updated the workflow log property so missing review targets are expected to be no-ops.
+- Did not run tests or Git commands, as requested.
+
+### Next
+Run the state tests and TypeScript checks locally.
+
+### Next steps
+1. Run the Vitest suite.
+2. Run the TypeScript build or type-check.
+3. Commit the verified changes.

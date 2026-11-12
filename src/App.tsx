@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useGame } from './state/useGame'
+import { ApprovalQueue } from './ui/ApprovalQueue'
 import { Feed } from './ui/Feed'
 import { GhostGallery } from './ui/GhostGallery'
 import { PledgePage } from './ui/PledgePage'
@@ -21,7 +22,17 @@ function pledgeIdFromHash(hash: string): string | null {
 function App() {
   const [showGallery, setShowGallery] = useState(false)
   const [hash, setHash] = useState(() => window.location.hash)
-  const { state, stake, simulateResolution, resetDemo } = useGame()
+  const {
+    state,
+    isGeneratingDrafts,
+    stake,
+    simulateResolution,
+    generateDrafts,
+    approveDraft,
+    editDraft,
+    rejectDraft,
+    resetDemo,
+  } = useGame()
 
   useEffect(() => {
     const updateHash = () => {
@@ -35,6 +46,7 @@ function App() {
   }, [])
 
   const pledgeId = pledgeIdFromHash(hash)
+  const isGuardian = hash === '#/gardien'
   const pledge = pledgeId
     ? state.pledges.find((candidate) => candidate.id === pledgeId)
     : undefined
@@ -52,16 +64,36 @@ function App() {
           Les promesses publiques restent visibles jusqu’à l’arrivée des
           preuves.
         </p>
-        {!pledgeId && (
-          <button
-            className="app-view-link"
-            type="button"
-            aria-expanded={showGallery}
-            onClick={() => setShowGallery((visible) => !visible)}
+        <nav className="app-header__actions" aria-label="Navigation principale">
+          <a
+            className="app-view-link app-guardian-link"
+            href="#/gardien"
+            aria-current={isGuardian ? 'page' : undefined}
           >
-            {showGallery ? 'Retour au fil' : 'Galerie des états'}
-          </button>
-        )}
+            Gardien
+            <span
+              className="app-guardian-link__badge"
+              aria-label={`${state.draftsQueue.length} brouillon(s) en attente`}
+            >
+              {state.draftsQueue.length}
+            </span>
+          </a>
+          {isGuardian && (
+            <a className="app-view-link" href="#/">
+              Retour au fil
+            </a>
+          )}
+          {!pledgeId && !isGuardian && (
+            <button
+              className="app-view-link"
+              type="button"
+              aria-expanded={showGallery}
+              onClick={() => setShowGallery((visible) => !visible)}
+            >
+              {showGallery ? 'Retour au fil' : 'Galerie des états'}
+            </button>
+          )}
+        </nav>
       </header>
 
       {pledgeId ? (
@@ -80,6 +112,16 @@ function App() {
             <button type="button" onClick={returnToFeed}>Retour</button>
           </section>
         )
+      ) : isGuardian ? (
+        <ApprovalQueue
+          drafts={state.draftsQueue}
+          decisions={state.decisionsLog}
+          isGenerating={isGeneratingDrafts}
+          onGenerate={generateDrafts}
+          onApprove={approveDraft}
+          onEdit={editDraft}
+          onReject={rejectDraft}
+        />
       ) : showGallery ? (
         <GhostGallery />
       ) : (
