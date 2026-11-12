@@ -33,3 +33,21 @@ Run the state tests and TypeScript checks locally.
 1. Run the Vitest suite.
 2. Run the TypeScript build or type-check.
 3. Commit the verified changes.
+
+## Session — 2026-11-12 — Task 12
+
+### Done
+- Added three deterministic fixture verifiers: Archiviste, Témoin, and Greffier.
+- Added consensus routing with evidence, confidence, disagreement, and safety-tier gates.
+- Added persisted verifier reports, human resolution, AI override tombstones, and decision-log entries to the existing game store.
+- Added the mobile-first three-spirit verdict and Guardian controls to the pledge page.
+- Added fast-check coverage for consensus safety, override accounting, and Souls conservation across automatic, human, and override paths.
+- Did not run tests, build, network, or Git commands, as requested.
+
+### Next
+Have the GitHub helper run the full test and TypeScript build checks.
+
+### Next steps
+1. Run the Vitest suite with a non-watch command.
+2. Run the TypeScript/Vite production build.
+3. Commit task 12 after those checks pass.

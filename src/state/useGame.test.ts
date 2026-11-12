@@ -2,12 +2,14 @@ import fc from 'fast-check'
 import { describe, expect, it } from 'vitest'
 import { decide } from '../ai/guardian'
 import type { Draft } from '../ai/types'
+import { VERIFIER_NAMES, type VerifierCheck } from '../ai/verifier'
 import type { DemoPledge } from '../data/demoPledges'
 import {
   evidenceLevel,
   type ProposedOutcome,
   type Source,
 } from '../engine/evidence'
+import type { FinalState } from '../engine/lifecycle'
 import type { SafetyTier } from '../engine/safety'
 import type { Side } from '../engine/souls'
 import {
@@ -408,6 +410,153 @@ describe('approval queue properties', () => {
             state = gameReducer(state, workflowAction(name, red, index + 1))
             expect(state.pledges.some((pledge) => pledge.id === red.id)).toBe(false)
           })
+        },
+      ),
+    )
+  })
+})
+
+
+function verifierChecks(outcome: ProposedOutcome): VerifierCheck[] {
+  return VERIFIER_NAMES.map((name, index) => ({
+    name,
+    outcome,
+    confidence: 0.9 + index * 0.01,
+    reasons: ['Les preuves fictives concordent.'],
+  }))
+}
+
+function resolvableState(
+  pools: Readonly<Record<Side, number>>,
+  tier: 'GREEN' | 'ORANGE' = 'GREEN',
+): GameState {
+  const state = stateWithPledge(
+    [
+      {
+        url: 'https://example.org/official-resolution',
+        kind: 'official',
+        independentGroup: 'official-resolution',
+      },
+    ],
+    pools,
+  )
+
+  return {
+    ...state,
+    pledges: [{ ...state.pledges[0], tier }],
+  }
+}
+
+function totalAfterResolution(state: GameState, pledgeId: string): number {
+  const result = state.resolutions[pledgeId]
+  const fictionalPayouts = result.payouts
+    .filter((payout) => payout.fictional)
+    .reduce((sum, payout) => sum + payout.payout, 0)
+  return state.player.souls + fictionalPayouts + result.unpaidPool
+}
+
+describe('three-spirit resolution properties', () => {
+  it('a HUMAN_OVERRIDE creates exactly one tombstone and one log entry', () => {
+    fc.assert(
+      fc.property(outcomeArbitrary, (aiOutcome) => {
+        const initial = resolvableState({ KEPT: 720, BROKEN: 480 })
+        const pledgeId = initial.pledges[0].id
+        const autoResolved = gameReducer(initial, {
+          type: 'RUN_VERIFIERS',
+          pledgeId,
+          checks: verifierChecks(aiOutcome),
+          at: 10,
+        })
+        const tombstonesBefore = autoResolved.tombstones.length
+        const logsBefore = autoResolved.decisionsLog.length
+        const humanOutcome: FinalState =
+          aiOutcome === 'KEPT' ? 'BROKEN' : 'KEPT'
+        const overridden = gameReducer(autoResolved, {
+          type: 'HUMAN_OVERRIDE',
+          pledgeId,
+          outcome: humanOutcome,
+          reason: 'Le Gardien corrige le verdict avec une preuve fictive.',
+          at: 20,
+        })
+
+        expect(overridden.tombstones).toHaveLength(tombstonesBefore + 1)
+        expect(overridden.decisionsLog).toHaveLength(logsBefore + 1)
+        const lastLog = overridden.decisionsLog[overridden.decisionsLog.length - 1]
+        const lastTombstone = overridden.tombstones[overridden.tombstones.length - 1]
+        expect(lastLog?.action).toBe('HUMAN_OVERRIDE')
+        expect(lastTombstone).toMatchObject({
+          pledgeId,
+          aiClaim: aiOutcome,
+          humanOutcome,
+        })
+      }),
+    )
+  })
+
+  it('conserves Souls after automatic, human, and override paths', () => {
+    const pathArbitrary = fc.constantFrom<'AUTO' | 'HUMAN' | 'OVERRIDE'>(
+      'AUTO',
+      'HUMAN',
+      'OVERRIDE',
+    )
+    const finalOutcomeArbitrary = fc.constantFrom<FinalState>(
+      'KEPT',
+      'BROKEN',
+      'INCONCLUSIVE',
+    )
+
+    fc.assert(
+      fc.property(
+        pathArbitrary,
+        fc.integer({ min: 10, max: 1_000 }),
+        fc.integer({ min: 1, max: 10_000 }),
+        fc.integer({ min: 1, max: 10_000 }),
+        sideArbitrary,
+        outcomeArbitrary,
+        finalOutcomeArbitrary,
+        (path, amount, keptPool, brokenPool, side, aiOutcome, humanOutcome) => {
+          const tier = path === 'HUMAN' ? 'ORANGE' : 'GREEN'
+          const initial = resolvableState(
+            { KEPT: keptPool, BROKEN: brokenPool },
+            tier,
+          )
+          const pledgeId = initial.pledges[0].id
+          let state = gameReducer(initial, {
+            type: 'STAKE',
+            pledgeId,
+            side,
+            amount,
+            at: 1,
+          })
+          state = gameReducer(state, {
+            type: 'RUN_VERIFIERS',
+            pledgeId,
+            checks: verifierChecks(aiOutcome),
+            at: 2,
+          })
+
+          if (path === 'HUMAN') {
+            state = gameReducer(state, {
+              type: 'HUMAN_RESOLVE',
+              pledgeId,
+              outcome: humanOutcome,
+              reason: 'Décision humaine de propriété.',
+              at: 3,
+            })
+          } else if (path === 'OVERRIDE') {
+            const corrected: FinalState =
+              aiOutcome === 'KEPT' ? 'BROKEN' : 'KEPT'
+            state = gameReducer(state, {
+              type: 'HUMAN_OVERRIDE',
+              pledgeId,
+              outcome: corrected,
+              reason: 'Correction humaine de propriété.',
+              at: 3,
+            })
+          }
+
+          const totalBefore = initial.player.souls + keptPool + brokenPool
+          expect(totalAfterResolution(state, pledgeId)).toBe(totalBefore)
         },
       ),
     )

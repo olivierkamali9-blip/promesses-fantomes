@@ -1,3 +1,5 @@
+import type { ConsensusDecision } from '../ai/consensus'
+import type { VerifierCheck } from '../ai/verifier'
 import type { EvidenceLevel, Source } from '../engine/evidence'
 import type { LifecycleState } from '../engine/lifecycle'
 import type { SafetyTier } from '../engine/safety'
@@ -18,6 +20,11 @@ export type DemoPledge = {
   unconfirmed?: boolean
   stakes: Readonly<Record<Side, number>>
   sources: readonly DemoSource[]
+  verification?: {
+    checks: VerifierCheck[]
+    decision: ConsensusDecision
+    checkedAt: number
+  }
 }
 
 const referenceTime = Date.now()
@@ -34,7 +41,7 @@ export const demoPledges: readonly DemoPledge[] = [
     criteria: 'Le résultat officiel après le temps réglementaire et les éventuelles prolongations désigne le FC Démo vainqueur.',
     deadline: hoursFromNow(6),
     state: 'APPARITION',
-    evidenceLevel: 2,
+    evidenceLevel: 3,
     tier: 'GREEN',
     stakes: { KEPT: 720, BROKEN: 480 },
     sources: [
@@ -45,9 +52,9 @@ export const demoPledges: readonly DemoPledge[] = [
         independentGroup: 'ligue-exemple',
       },
       {
-        label: 'Programme du Stade Démonstration',
+        label: 'Compte rendu indépendant du Stade Démonstration',
         url: 'https://example.org/sources/stade-demonstration-programme',
-        kind: 'statement',
+        kind: 'reliable',
         independentGroup: 'stade-demonstration',
       },
     ],

@@ -25,8 +25,11 @@ function App() {
   const {
     state,
     isGeneratingDrafts,
+    verifyingPledgeIds,
     stake,
-    simulateResolution,
+    runPledgeVerifiers,
+    humanResolve,
+    humanOverride,
     generateDrafts,
     approveDraft,
     editDraft,
@@ -104,7 +107,10 @@ function App() {
             result={state.resolutions[pledge.id]}
             onBack={returnToFeed}
             onStake={stake}
-            onSimulate={simulateResolution}
+            isVerifying={verifyingPledgeIds.includes(pledge.id)}
+            onRunVerifiers={runPledgeVerifiers}
+            onHumanResolve={humanResolve}
+            onHumanOverride={humanOverride}
           />
         ) : (
           <section className="route-error" role="alert">

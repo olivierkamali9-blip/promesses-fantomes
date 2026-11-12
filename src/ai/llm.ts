@@ -105,8 +105,114 @@ function fixtureResponse(sourceUrl: string, plan: FixturePlan): string {
   })
 }
 
+type VerificationFixture = {
+  outcome: 'KEPT' | 'BROKEN' | 'INCONCLUSIVE'
+  confidence: number
+  reasons: string[]
+}
+
+const FIXTURE_VERDICTS: Readonly<
+  Record<string, readonly [VerificationFixture, VerificationFixture, VerificationFixture]>
+> = {
+  'finale-coupe-demo': [
+    { outcome: 'KEPT', confidence: 0.92, reasons: ['Le résultat officiel fictif confirme la victoire.'] },
+    { outcome: 'KEPT', confidence: 0.9, reasons: ['Les deux sources indépendantes concordent.'] },
+    { outcome: 'KEPT', confidence: 0.94, reasons: ['Le critère et l’échéance sont satisfaits.'] },
+  ],
+  'navette-ville-exemple': [
+    { outcome: 'KEPT', confidence: 0.7, reasons: ['L’annonce indique un lancement.'] },
+    { outcome: 'BROKEN', confidence: 0.64, reasons: ['Aucun trajet public n’est confirmé.'] },
+    { outcome: 'INCONCLUSIVE', confidence: 0.58, reasons: ['Une seule déclaration est disponible.'] },
+  ],
+  'rapport-centre-sante-demo': [
+    { outcome: 'INCONCLUSIVE', confidence: 0.72, reasons: ['Le bulletin officiel manque.'] },
+    { outcome: 'INCONCLUSIVE', confidence: 0.69, reasons: ['La source unique ne suffit pas.'] },
+    { outcome: 'INCONCLUSIVE', confidence: 0.75, reasons: ['Le critère horaire reste invérifiable.'] },
+  ],
+  'academie-demo-tournoi': [
+    { outcome: 'BROKEN', confidence: 0.88, reasons: ['Le classement fictif ne place pas l’académie première.'] },
+    { outcome: 'BROKEN', confidence: 0.86, reasons: ['La feuille de tournoi indique une autre équipe.'] },
+    { outcome: 'BROKEN', confidence: 0.9, reasons: ['Le critère de victoire n’est pas satisfait.'] },
+  ],
+  'passage-pieton-exemple': [
+    { outcome: 'INCONCLUSIVE', confidence: 0.63, reasons: ['La réouverture n’est pas documentée.'] },
+    { outcome: 'INCONCLUSIVE', confidence: 0.61, reasons: ['Aucun contrôle indépendant n’est fourni.'] },
+    { outcome: 'INCONCLUSIVE', confidence: 0.66, reasons: ['La note seule ne prouve pas l’ouverture.'] },
+  ],
+  'commission-archipel-resultats': [
+    { outcome: 'KEPT', confidence: 0.93, reasons: ['Le tableau fictif est publié.'] },
+    { outcome: 'KEPT', confidence: 0.91, reasons: ['La date annoncée est respectée.'] },
+    { outcome: 'KEPT', confidence: 0.92, reasons: ['Le document répond au critère, sous contrôle humain.'] },
+  ],
+  'coupe-des-brumes': [
+    { outcome: 'KEPT', confidence: 0.67, reasons: ['Une annonce suggère la qualification.'] },
+    { outcome: 'INCONCLUSIVE', confidence: 0.59, reasons: ['Le tableau officiel manque.'] },
+    { outcome: 'BROKEN', confidence: 0.55, reasons: ['La source ne confirme pas la finale.'] },
+  ],
+  'rapport-ministre-exemple': [
+    { outcome: 'BROKEN', confidence: 0.89, reasons: ['Le registre fictif ne contient pas le rapport.'] },
+    { outcome: 'BROKEN', confidence: 0.87, reasons: ['L’échéance est dépassée sans publication.'] },
+    { outcome: 'BROKEN', confidence: 0.9, reasons: ['Le critère de mise à disposition échoue.'] },
+  ],
+  'tribunal-calendrier-demo': [
+    { outcome: 'INCONCLUSIVE', confidence: 0.7, reasons: ['Le calendrier validé manque.'] },
+    { outcome: 'INCONCLUSIVE', confidence: 0.68, reasons: ['L’avis ne confirme pas une publication.'] },
+    { outcome: 'INCONCLUSIVE', confidence: 0.72, reasons: ['Le greffe fictif ne fournit pas de document final.'] },
+  ],
+  'match-rivage-demo': [
+    { outcome: 'KEPT', confidence: 0.98, reasons: ['La feuille officielle indique une victoire.'] },
+    { outcome: 'KEPT', confidence: 0.97, reasons: ['Le résultat primaire confirme le score.'] },
+    { outcome: 'KEPT', confidence: 0.99, reasons: ['Le document satisfait exactement le critère.'] },
+  ],
+  'fontaine-place-exemple': [
+    { outcome: 'BROKEN', confidence: 0.91, reasons: ['Le premier contrôle constate l’arrêt.'] },
+    { outcome: 'BROKEN', confidence: 0.9, reasons: ['Le second contrôle indépendant concorde.'] },
+    { outcome: 'BROKEN', confidence: 0.92, reasons: ['Les contrôles échouent le critère de continuité.'] },
+  ],
+  'alerte-clinique-imaginaire': [
+    { outcome: 'INCONCLUSIVE', confidence: 0.74, reasons: ['Le compte rendu daté manque.'] },
+    { outcome: 'INCONCLUSIVE', confidence: 0.71, reasons: ['Les horaires ne sont pas confirmés.'] },
+    { outcome: 'INCONCLUSIVE', confidence: 0.76, reasons: ['Le niveau de preuve reste insuffisant.'] },
+  ],
+}
+
+const FIXTURE_VERIFIER_NAMES = ['Archiviste', 'Témoin', 'Greffier'] as const
+
+function verificationFixtureResponse(prompt: string): string | null {
+  if (!prompt.includes('PROMESSES_FANTOMES_VERIFICATION')) {
+    return null
+  }
+
+  const pledgeId = /^PLEDGE_ID:\s*(.+)$/m.exec(prompt)?.[1]?.trim()
+  const verifierName = /^VERIFIER:\s*(.+)$/m.exec(prompt)?.[1]?.trim()
+  const verifierIndex = FIXTURE_VERIFIER_NAMES.findIndex(
+    (name) => name === verifierName,
+  )
+
+  if (!pledgeId || verifierIndex < 0) {
+    return JSON.stringify({
+      outcome: 'INCONCLUSIVE',
+      confidence: 0,
+      reasons: ['La fixture ne reconnaît pas cette vérification.'],
+    })
+  }
+
+  const fallback: VerificationFixture = {
+    outcome: 'INCONCLUSIVE',
+    confidence: 0.6,
+    reasons: ['Cette promesse de démonstration exige un examen humain.'],
+  }
+  const fixture = FIXTURE_VERDICTS[pledgeId]?.[verifierIndex] ?? fallback
+  return JSON.stringify(fixture)
+}
+
 export class FixtureLlm implements LlmClient {
   complete(prompt: string): Promise<string> {
+    const verificationResponse = verificationFixtureResponse(prompt)
+    if (verificationResponse !== null) {
+      return Promise.resolve(verificationResponse)
+    }
+
     const fixture = Object.entries(FIXTURE_PLANS).find(([sourceUrl]) =>
       prompt.includes(sourceUrl),
     )

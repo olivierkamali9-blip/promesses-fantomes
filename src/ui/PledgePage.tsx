@@ -1,6 +1,6 @@
 import { useMemo, useState, type CSSProperties, type FormEvent } from 'react'
 import type { DemoPledge } from '../data/demoPledges'
-import type { LifecycleState } from '../engine/lifecycle'
+import type { FinalState, LifecycleState } from '../engine/lifecycle'
 import { timeState } from '../engine/lifecycle'
 import { validateStake, type StakeValidation } from '../engine/stake'
 import { poolPercentages, type Side } from '../engine/souls'
@@ -66,7 +66,18 @@ type PledgePageProps = {
   result?: SimulationResult
   onBack: () => void
   onStake: (pledgeId: string, side: Side, amount: number) => void
-  onSimulate: (pledgeId: string, proposedOutcome: Side) => void
+  isVerifying: boolean
+  onRunVerifiers: (pledgeId: string) => Promise<void>
+  onHumanResolve: (
+    pledgeId: string,
+    outcome: FinalState,
+    reason: string,
+  ) => void
+  onHumanOverride: (
+    pledgeId: string,
+    outcome: FinalState,
+    reason: string,
+  ) => void
 }
 
 function validationMessage(validation: StakeValidation): string {
@@ -79,11 +90,16 @@ export function PledgePage({
   result,
   onBack,
   onStake,
-  onSimulate,
+  isVerifying,
+  onRunVerifiers,
+  onHumanResolve,
+  onHumanOverride,
 }: PledgePageProps) {
   const [side, setSide] = useState<Side>('KEPT')
   const [amount, setAmount] = useState(50)
   const [confirmation, setConfirmation] = useState('')
+  const [guardianReason, setGuardianReason] = useState('')
+  const [showCorrection, setShowCorrection] = useState(false)
   const now = useMemo(() => new Date(), [])
   const state = timeState(pledge.state, now, new Date(pledge.deadline))
   const countdown = formatCountdown(new Date(pledge.deadline), now)
@@ -93,7 +109,8 @@ export function PledgePage({
   const open = state === 'APPARITION' || state === 'HAUNTING'
   const canStake = open && !result
   const tier = TIER_DETAILS[pledge.tier]
-  const fictionalConfidence = Math.min(96, 42 + pledge.evidenceLevel * 12)
+  const verification = pledge.verification
+  const guardianReasonReady = guardianReason.trim().length > 0
 
   function submitStake(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -106,8 +123,24 @@ export function PledgePage({
     setConfirmation(`${amount} Âmes mises sur ${side === 'KEPT' ? 'TENUE' : 'ROMPUE'}.`)
   }
 
-  const proposedOutcome: Side =
-    percentages.KEPT >= percentages.BROKEN ? 'KEPT' : 'BROKEN'
+  function submitHumanResolution(outcome: FinalState) {
+    if (!guardianReasonReady) {
+      return
+    }
+
+    onHumanResolve(pledge.id, outcome, guardianReason.trim())
+    setGuardianReason('')
+  }
+
+  function submitHumanOverride(outcome: FinalState) {
+    if (!guardianReasonReady || outcome === result?.outcome) {
+      return
+    }
+
+    onHumanOverride(pledge.id, outcome, guardianReason.trim())
+    setGuardianReason('')
+    setShowCorrection(false)
+  }
 
   return (
     <article className="pledge-page" aria-labelledby="pledge-page-title">
@@ -249,7 +282,6 @@ export function PledgePage({
           <div className="ai-belief__summary">
             <p><strong>Niveau de preuve :</strong> L{pledge.evidenceLevel}</p>
             <p><strong>Risque {tier.label} :</strong> {tier.reason}</p>
-            <p><strong>Confiance IA fictive (démo) :</strong> {fictionalConfidence}%</p>
           </div>
 
           <ol className="evidence-ladder" aria-label="Échelle des preuves">
@@ -275,29 +307,109 @@ export function PledgePage({
               </li>
             ))}
           </ul>
-          <p className="ai-belief__rule">Aucune résolution sur une seule source</p>
+          <p className="ai-belief__rule">Résolution autorisée uniquement à L3 ou L4</p>
         </section>
       </div>
 
-      <section className="demo-resolution pledge-page__panel" aria-labelledby="demo-resolution-title">
+      <section className="spirit-verdict pledge-page__panel" aria-labelledby="spirit-verdict-title">
         <div className="pledge-page__panel-heading">
           <div>
-            <p className="pledge-page__eyebrow">Simulation sans argent réel</p>
-            <h3 id="demo-resolution-title">Résolution de démonstration</h3>
+            <p className="pledge-page__eyebrow">Contrôle croisé, sources fictives</p>
+            <h3 id="spirit-verdict-title">Verdict des trois esprits</h3>
           </div>
           <button
             type="button"
-            disabled={!open || Boolean(result)}
-            onClick={() => onSimulate(pledge.id, proposedOutcome)}
+            disabled={!open || Boolean(result) || isVerifying}
+            onClick={() => void onRunVerifiers(pledge.id)}
           >
-            Démo : simuler la résolution
+            {isVerifying
+              ? 'Vérification en cours…'
+              : 'Lancer les vérificateurs (démo)'}
           </button>
         </div>
 
-        {result ? (
+        {verification ? (
+          <div aria-live="polite">
+            <div className="spirit-verdict__checks">
+              {verification.checks.map((check) => (
+                <article className="spirit-check" key={check.name}>
+                  <h4>{check.name}</h4>
+                  <p className="spirit-check__outcome">
+                    {OUTCOME_LABELS[check.outcome]}
+                  </p>
+                  <p>Confiance : <strong>{Math.round(check.confidence * 100)} %</strong></p>
+                  <ul>
+                    {check.reasons.map((reason) => (
+                      <li key={reason}>{reason}</li>
+                    ))}
+                  </ul>
+                </article>
+              ))}
+            </div>
+            <div className="spirit-decision">
+              <p>
+                Décision : <strong>
+                  {verification.decision.action === 'AUTO_RESOLVE'
+                    ? 'Résolution automatique'
+                    : 'Examen humain'}
+                </strong>
+              </p>
+              <p>
+                Avis proposé : <strong>
+                  {OUTCOME_LABELS[verification.decision.outcome]}
+                </strong> · confiance moyenne{' '}
+                {Math.round(verification.decision.confidence * 100)} %
+              </p>
+              <p>{verification.decision.reason}</p>
+            </div>
+          </div>
+        ) : (
+          <p className="demo-resolution__empty">
+            Les trois esprits n’ont pas encore examiné cette promesse.
+          </p>
+        )}
+
+        {verification?.decision.action === 'HUMAN_REVIEW' && !result && (
+          <div className="guardian-resolution">
+            <h4>Décision du Gardien</h4>
+            <label htmlFor="guardian-reason">Raison obligatoire</label>
+            <textarea
+              id="guardian-reason"
+              required
+              value={guardianReason}
+              onChange={(event) => setGuardianReason(event.target.value)}
+            />
+            <div className="guardian-resolution__actions">
+              <button
+                type="button"
+                disabled={!guardianReasonReady}
+                onClick={() => submitHumanResolution('KEPT')}
+              >
+                Tenue
+              </button>
+              <button
+                type="button"
+                disabled={!guardianReasonReady}
+                onClick={() => submitHumanResolution('BROKEN')}
+              >
+                Rompue
+              </button>
+              <button
+                type="button"
+                disabled={!guardianReasonReady}
+                onClick={() => submitHumanResolution('INCONCLUSIVE')}
+              >
+                Sans verdict
+              </button>
+            </div>
+          </div>
+        )}
+
+        {result && (
           <div className="demo-resolution__result" aria-live="polite">
             <p>Verdict : <strong>{OUTCOME_LABELS[result.outcome]}</strong></p>
             <p>Votre nouveau solde : <strong>{result.playerSouls} Âmes</strong></p>
+            <p>Motif : {result.reason}</p>
             <h4>Paiements des parieurs fictifs</h4>
             <ul>
               {result.payouts.filter((payout) => payout.fictional).map((payout) => (
@@ -307,11 +419,51 @@ export function PledgePage({
                 </li>
               ))}
             </ul>
+
+            {result.resolvedBy === 'ai' && !showCorrection && (
+              <button
+                type="button"
+                className="guardian-resolution__correction"
+                onClick={() => setShowCorrection(true)}
+              >
+                Corriger (erreur de l’IA)
+              </button>
+            )}
+
+            {result.resolvedBy === 'ai' && showCorrection && (
+              <div className="guardian-resolution">
+                <h4>Graver la correction</h4>
+                <label htmlFor="override-reason">Raison obligatoire</label>
+                <textarea
+                  id="override-reason"
+                  required
+                  value={guardianReason}
+                  onChange={(event) => setGuardianReason(event.target.value)}
+                />
+                <div className="guardian-resolution__actions">
+                  {(['KEPT', 'BROKEN', 'INCONCLUSIVE'] as const).map((outcome) => (
+                    <button
+                      key={outcome}
+                      type="button"
+                      disabled={!guardianReasonReady || outcome === result.outcome}
+                      onClick={() => submitHumanOverride(outcome)}
+                    >
+                      {OUTCOME_LABELS[outcome]}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowCorrection(false)
+                      setGuardianReason('')
+                    }}
+                  >
+                    Annuler
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
-        ) : (
-          <p className="demo-resolution__empty">
-            Le verdict proposé suit la majorité fictive, puis le moteur vérifie les preuves.
-          </p>
         )}
       </section>
     </article>

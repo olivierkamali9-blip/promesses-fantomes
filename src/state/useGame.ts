@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useReducer, useState } from 'react'
+import { decideResolution, type ConsensusDecision } from '../ai/consensus'
 import { decide, type GuardianDecision } from '../ai/guardian'
 import { FixtureLlm } from '../ai/llm'
 import { validatePublishable } from '../ai/publishable'
 import { draftPledge } from '../ai/drafter'
 import { scout } from '../ai/scout'
 import type { Candidate, Draft } from '../ai/types'
+import { runVerifiers, type VerifierCheck } from '../ai/verifier'
 import { demoPledges, type DemoPledge } from '../data/demoPledges'
 import { evidenceLevel, resolveOutcome, type ProposedOutcome } from '../engine/evidence'
 import { applyEvent, resolvePledge, type FinalState } from '../engine/lifecycle'
@@ -47,6 +49,16 @@ export type SimulationResult = {
   payouts: PayoutLine[]
   playerSouls: number
   unpaidPool: number
+  resolvedBy: 'ai' | 'human'
+  reason: string
+}
+
+export type Tombstone = {
+  pledgeId: string
+  aiClaim: FinalState
+  humanOutcome: FinalState
+  reason: string
+  date: string
 }
 
 export type DraftQueueItem = {
@@ -62,12 +74,15 @@ export type DecisionAction =
   | 'APPROVE_DRAFT'
   | 'EDIT_DRAFT'
   | 'REJECT_DRAFT'
+  | 'RUN_VERIFIERS'
+  | 'HUMAN_RESOLVE'
+  | 'HUMAN_OVERRIDE'
 
 export type DecisionSubject = {
   draftId: string
   question: string
   tier: SafetyTier
-  decision: GuardianDecision['action'] | 'REFUSED'
+  decision: GuardianDecision['action'] | 'REFUSED' | FinalState
   reason: string
 }
 
@@ -87,6 +102,7 @@ export type GameState = {
   resolutions: Record<string, SimulationResult>
   draftsQueue: DraftQueueItem[]
   decisionsLog: DecisionLogEntry[]
+  tombstones: Tombstone[]
 }
 
 export type DraftEdits = Pick<Draft, 'question' | 'criteria' | 'deadline'>
@@ -103,6 +119,26 @@ export type GameAction =
       type: 'SIMULATE_RESOLUTION'
       pledgeId: string
       proposedOutcome: ProposedOutcome
+    }
+  | {
+      type: 'RUN_VERIFIERS'
+      pledgeId: string
+      checks: VerifierCheck[]
+      at: number
+    }
+  | {
+      type: 'HUMAN_RESOLVE'
+      pledgeId: string
+      outcome: FinalState
+      reason: string
+      at: number
+    }
+  | {
+      type: 'HUMAN_OVERRIDE'
+      pledgeId: string
+      outcome: FinalState
+      reason: string
+      at: number
     }
   | {
       type: 'GENERATE_DRAFTS'
@@ -125,6 +161,15 @@ function cloneDemoPledges(): DemoPledge[] {
     ...pledge,
     stakes: { ...pledge.stakes },
     sources: pledge.sources.map((source) => ({ ...source })),
+    verification: pledge.verification
+      ? {
+          ...pledge.verification,
+          checks: pledge.verification.checks.map((check) => ({
+            ...check,
+            reasons: [...check.reasons],
+          })),
+        }
+      : undefined,
   }))
 }
 
@@ -136,6 +181,7 @@ export function createInitialGameState(): GameState {
     resolutions: {},
     draftsQueue: [],
     decisionsLog: [],
+    tombstones: [],
   }
 }
 
@@ -177,25 +223,19 @@ function isOpenForStake(pledge: DemoPledge): boolean {
   return pledge.state === 'APPARITION' || pledge.state === 'HAUNTING'
 }
 
-function simulateResolution(
-  state: GameState,
-  pledge: DemoPledge,
-  proposedOutcome: ProposedOutcome,
-): GameState {
-  if (!isOpenForStake(pledge) || state.resolutions[pledge.id]) {
-    return state
-  }
-
-  const sources = pledge.sources.map(({ url, kind, independentGroup }) => ({
+function sourcesFor(pledge: DemoPledge) {
+  return pledge.sources.map(({ url, kind, independentGroup }) => ({
     url,
     kind,
     independentGroup,
   }))
-  const level = evidenceLevel(sources)
-  const resolution = resolveOutcome(sources, proposedOutcome)
-  const requestedOutcome =
-    resolution.status === 'RESOLVED' ? resolution.outcome : 'INCONCLUSIVE'
-  const outcome = resolvePledge(pledge.state, requestedOutcome, level)
+}
+
+function settlementFor(
+  state: GameState,
+  pledge: DemoPledge,
+  outcome: FinalState,
+): Pick<SimulationResult, 'settlementKind' | 'payouts'> {
   const playerStakes = state.playerStakes.filter(
     (stake) => stake.pledgeId === pledge.id,
   )
@@ -205,18 +245,37 @@ function simulateResolution(
   const payouts: PayoutLine[] = allStakes.map((stake, index) => ({
     userId: stake.userId,
     name:
-      stake.userId === PLAYER_ID
-        ? state.player.name
-        : fictionalName(index),
+      stake.userId === PLAYER_ID ? state.player.name : fictionalName(index),
     side: stake.side,
     stake: stake.amount,
     payout: settlement.payouts[index],
     fictional: stake.userId !== PLAYER_ID,
   }))
-  const playerPayout = payouts
+
+  return { settlementKind: settlement.kind, payouts }
+}
+
+function playerPayout(payouts: readonly PayoutLine[]): number {
+  return payouts
     .filter((payout) => !payout.fictional)
     .reduce((total, payout) => total + payout.payout, 0)
-  const playerSouls = state.player.souls + playerPayout
+}
+
+function settleResolution(
+  state: GameState,
+  pledge: DemoPledge,
+  requestedOutcome: FinalState,
+  resolvedBy: SimulationResult['resolvedBy'],
+  reason: string,
+): GameState {
+  if (!isOpenForStake(pledge) || state.resolutions[pledge.id]) {
+    return state
+  }
+
+  const level = evidenceLevel(sourcesFor(pledge))
+  const outcome = resolvePledge(pledge.state, requestedOutcome, level)
+  const settlement = settlementFor(state, pledge, outcome)
+  const playerSouls = state.player.souls + playerPayout(settlement.payouts)
 
   return {
     ...state,
@@ -228,13 +287,213 @@ function simulateResolution(
       ...state.resolutions,
       [pledge.id]: {
         outcome,
-        settlementKind: settlement.kind,
-        payouts,
+        ...settlement,
         playerSouls,
         unpaidPool: 0,
+        resolvedBy,
+        reason,
       },
     },
   }
+}
+
+function simulateResolution(
+  state: GameState,
+  pledge: DemoPledge,
+  proposedOutcome: ProposedOutcome,
+): GameState {
+  const resolution = resolveOutcome(sourcesFor(pledge), proposedOutcome)
+  const requestedOutcome =
+    resolution.status === 'RESOLVED' ? resolution.outcome : 'INCONCLUSIVE'
+
+  return settleResolution(
+    state,
+    pledge,
+    requestedOutcome,
+    'ai',
+    'Résolution de démonstration historique.',
+  )
+}
+
+function pledgeDecisionSubject(
+  pledge: DemoPledge,
+  decision: FinalState,
+  reason: string,
+): DecisionSubject {
+  return {
+    draftId: pledge.id,
+    question: pledge.question,
+    tier: pledge.tier,
+    decision,
+    reason,
+  }
+}
+
+function handleVerifierChecks(
+  state: GameState,
+  pledge: DemoPledge,
+  checks: VerifierCheck[],
+  at: number,
+): GameState {
+  if (!isOpenForStake(pledge) || state.resolutions[pledge.id]) {
+    return state
+  }
+
+  const level = evidenceLevel(sourcesFor(pledge))
+  const decision: ConsensusDecision = decideResolution(checks, level, pledge.tier)
+  const checkedState: GameState = {
+    ...state,
+    pledges: state.pledges.map((candidate) =>
+      candidate.id === pledge.id
+        ? {
+            ...candidate,
+            evidenceLevel: level,
+            verification: {
+              checks: checks.map((check) => ({
+                ...check,
+                reasons: [...check.reasons],
+              })),
+              decision,
+              checkedAt: at,
+            },
+          }
+        : candidate,
+    ),
+  }
+  const loggedState = appendDecision(
+    checkedState,
+    'ai',
+    'RUN_VERIFIERS',
+    decision.reason,
+    at,
+    [pledgeDecisionSubject(pledge, decision.outcome, decision.reason)],
+  )
+
+  if (decision.action !== 'AUTO_RESOLVE') {
+    return loggedState
+  }
+
+  const checkedPledge = loggedState.pledges.find(
+    (candidate) => candidate.id === pledge.id,
+  )
+  return checkedPledge
+    ? settleResolution(
+        loggedState,
+        checkedPledge,
+        decision.outcome,
+        'ai',
+        decision.reason,
+      )
+    : loggedState
+}
+
+function handleHumanResolution(
+  state: GameState,
+  pledge: DemoPledge,
+  outcome: FinalState,
+  reason: string,
+  at: number,
+): GameState {
+  const humanReason = reason.trim()
+  if (
+    humanReason.length === 0 ||
+    pledge.verification?.decision.action !== 'HUMAN_REVIEW' ||
+    state.resolutions[pledge.id]
+  ) {
+    return state
+  }
+
+  const resolved = settleResolution(
+    state,
+    pledge,
+    outcome,
+    'human',
+    humanReason,
+  )
+  if (resolved === state) {
+    return state
+  }
+
+  const finalOutcome = resolved.resolutions[pledge.id].outcome
+  return appendDecision(
+    resolved,
+    'human',
+    'HUMAN_RESOLVE',
+    humanReason,
+    at,
+    [pledgeDecisionSubject(pledge, finalOutcome, humanReason)],
+  )
+}
+
+function handleHumanOverride(
+  state: GameState,
+  pledge: DemoPledge,
+  outcome: FinalState,
+  reason: string,
+  at: number,
+): GameState {
+  const previous = state.resolutions[pledge.id]
+  const humanReason = reason.trim()
+  const level = evidenceLevel(sourcesFor(pledge))
+  const permittedOutcome =
+    (outcome === 'KEPT' || outcome === 'BROKEN') && level < 3
+      ? 'INCONCLUSIVE'
+      : outcome
+  if (
+    !previous ||
+    previous.resolvedBy !== 'ai' ||
+    previous.outcome === permittedOutcome ||
+    humanReason.length === 0
+  ) {
+    return state
+  }
+
+  const override = applyEvent(pledge.state, {
+    type: 'OVERRIDE',
+    outcome: permittedOutcome,
+  })
+  const settlement = settlementFor(state, pledge, override.state)
+  const soulsBeforeInitialSettlement =
+    state.player.souls - playerPayout(previous.payouts)
+  const playerSouls =
+    soulsBeforeInitialSettlement + playerPayout(settlement.payouts)
+  const tombstone: Tombstone = {
+    pledgeId: pledge.id,
+    aiClaim: previous.outcome,
+    humanOutcome: override.state,
+    reason: humanReason,
+    date: new Date(at).toISOString(),
+  }
+  const overridden: GameState = {
+    ...state,
+    player: { ...state.player, souls: playerSouls },
+    pledges: state.pledges.map((candidate) =>
+      candidate.id === pledge.id
+        ? { ...candidate, state: override.state }
+        : candidate,
+    ),
+    resolutions: {
+      ...state.resolutions,
+      [pledge.id]: {
+        outcome: override.state,
+        ...settlement,
+        playerSouls,
+        unpaidPool: 0,
+        resolvedBy: 'human',
+        reason: humanReason,
+      },
+    },
+    tombstones: [...state.tombstones, tombstone],
+  }
+
+  return appendDecision(
+    overridden,
+    'human',
+    'HUMAN_OVERRIDE',
+    humanReason,
+    at,
+    [pledgeDecisionSubject(pledge, override.state, humanReason)],
+  )
 }
 
 function stableDraftId(sourceUrl: string): string {
@@ -535,6 +794,27 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
   if (action.type === 'SIMULATE_RESOLUTION') {
     return simulateResolution(state, pledge, action.proposedOutcome)
   }
+  if (action.type === 'RUN_VERIFIERS') {
+    return handleVerifierChecks(state, pledge, action.checks, action.at)
+  }
+  if (action.type === 'HUMAN_RESOLVE') {
+    return handleHumanResolution(
+      state,
+      pledge,
+      action.outcome,
+      action.reason,
+      action.at,
+    )
+  }
+  if (action.type === 'HUMAN_OVERRIDE') {
+    return handleHumanOverride(
+      state,
+      pledge,
+      action.outcome,
+      action.reason,
+      action.at,
+    )
+  }
 
   if (
     !isOpenForStake(pledge) ||
@@ -574,8 +854,10 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
   }
 }
 
-function isStoredGameState(value: unknown): value is Omit<GameState, 'draftsQueue' | 'decisionsLog'> &
-  Partial<Pick<GameState, 'draftsQueue' | 'decisionsLog'>> {
+function isStoredGameState(value: unknown): value is Omit<
+  GameState,
+  'draftsQueue' | 'decisionsLog' | 'tombstones'
+> & Partial<Pick<GameState, 'draftsQueue' | 'decisionsLog' | 'tombstones'>> {
   if (!value || typeof value !== 'object') {
     return false
   }
@@ -603,10 +885,23 @@ function loadGameState(): GameState {
       return createInitialGameState()
     }
 
+    const resolutions = Object.fromEntries(
+      Object.entries(parsed.resolutions).map(([pledgeId, result]) => [
+        pledgeId,
+        {
+          ...result,
+          resolvedBy: result.resolvedBy ?? 'ai',
+          reason: result.reason ?? 'Résolution de démonstration antérieure.',
+        },
+      ]),
+    )
+
     return {
       ...parsed,
+      resolutions,
       draftsQueue: Array.isArray(parsed.draftsQueue) ? parsed.draftsQueue : [],
       decisionsLog: Array.isArray(parsed.decisionsLog) ? parsed.decisionsLog : [],
+      tombstones: Array.isArray(parsed.tombstones) ? parsed.tombstones : [],
     }
   } catch {
     return createInitialGameState()
@@ -616,6 +911,9 @@ function loadGameState(): GameState {
 export function useGame() {
   const [state, dispatch] = useReducer(gameReducer, undefined, loadGameState)
   const [isGeneratingDrafts, setIsGeneratingDrafts] = useState(false)
+  const [verifyingPledgeIds, setVerifyingPledgeIds] = useState<readonly string[]>(
+    [],
+  )
 
   useEffect(() => {
     try {
@@ -635,6 +933,58 @@ export function useGame() {
         type: 'SIMULATE_RESOLUTION',
         pledgeId,
         proposedOutcome,
+      })
+    },
+    [],
+  )
+
+  const runPledgeVerifiers = useCallback(
+    async (pledgeId: string) => {
+      if (verifyingPledgeIds.includes(pledgeId)) {
+        return
+      }
+
+      const pledge = state.pledges.find((candidate) => candidate.id === pledgeId)
+      if (!pledge || !isOpenForStake(pledge) || state.resolutions[pledgeId]) {
+        return
+      }
+
+      setVerifyingPledgeIds((ids) => [...ids, pledgeId])
+      try {
+        const checks = await runVerifiers(
+          pledge,
+          sourcesFor(pledge),
+          new FixtureLlm(),
+        )
+        dispatch({ type: 'RUN_VERIFIERS', pledgeId, checks, at: Date.now() })
+      } finally {
+        setVerifyingPledgeIds((ids) => ids.filter((id) => id !== pledgeId))
+      }
+    },
+    [state.pledges, state.resolutions, verifyingPledgeIds],
+  )
+
+  const humanResolve = useCallback(
+    (pledgeId: string, outcome: FinalState, reason: string) => {
+      dispatch({
+        type: 'HUMAN_RESOLVE',
+        pledgeId,
+        outcome,
+        reason,
+        at: Date.now(),
+      })
+    },
+    [],
+  )
+
+  const humanOverride = useCallback(
+    (pledgeId: string, outcome: FinalState, reason: string) => {
+      dispatch({
+        type: 'HUMAN_OVERRIDE',
+        pledgeId,
+        outcome,
+        reason,
+        at: Date.now(),
       })
     },
     [],
@@ -680,8 +1030,12 @@ export function useGame() {
   return {
     state,
     isGeneratingDrafts,
+    verifyingPledgeIds,
     stake,
     simulateResolution,
+    runPledgeVerifiers,
+    humanResolve,
+    humanOverride,
     generateDrafts,
     approveDraft,
     editDraft,

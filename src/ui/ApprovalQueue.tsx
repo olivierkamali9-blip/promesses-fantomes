@@ -22,6 +22,9 @@ const ACTION_LABELS: Record<DecisionAction, string> = {
   APPROVE_DRAFT: 'Approbation',
   EDIT_DRAFT: 'Modification',
   REJECT_DRAFT: 'Rejet',
+  RUN_VERIFIERS: 'Verdict des trois esprits',
+  HUMAN_RESOLVE: 'Résolution du Gardien',
+  HUMAN_OVERRIDE: 'Correction d’une erreur de l’IA',
 }
 
 type DraftEditor = DraftEdits & {
