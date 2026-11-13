@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useReducer, useState } from 'react'
+import { useCallback, useEffect, useReducer, useRef, useState } from 'react'
 import { decideResolution, type ConsensusDecision } from '../ai/consensus'
 import { decide, type GuardianDecision } from '../ai/guardian'
 import { FixtureLlm } from '../ai/llm'
@@ -11,9 +11,17 @@ import { demoPledges, type DemoPledge } from '../data/demoPledges'
 import { evidenceLevel, resolveOutcome, type ProposedOutcome } from '../engine/evidence'
 import { applyEvent, resolvePledge, type FinalState } from '../engine/lifecycle'
 import { mergeTier, type SafetyTier } from '../engine/safety'
-import { validateStake } from '../engine/stake'
+import {
+  DEFAULT_DAILY_STAKE_CAP,
+  totalStakedOnDay,
+  validateStake,
+} from '../engine/stake'
 import { settlePledge, type Side, type Stake } from '../engine/souls'
-import { draftLiveFootball, isLiveFootballCandidate } from '../sources/footballLive'
+import {
+  draftLiveFootball,
+  isLiveFootballCandidate,
+  type LiveFootballCandidate,
+} from '../sources/footballLive'
 import {
   createAdapter,
   FixtureAdapter,
@@ -110,6 +118,7 @@ export type GameState = {
   draftsQueue: DraftQueueItem[]
   decisionsLog: DecisionLogEntry[]
   tombstones: Tombstone[]
+  sourceRefreshAt: number | null
 }
 
 export type DraftEdits = Pick<Draft, 'question' | 'criteria' | 'deadline'>
@@ -121,6 +130,7 @@ export type GameAction =
       side: Side
       amount: number
       at: number
+      dailyStakeCap?: number
     }
   | {
       type: 'SIMULATE_RESOLUTION'
@@ -150,6 +160,8 @@ export type GameAction =
   | {
       type: 'GENERATE_DRAFTS'
       drafts: DraftQueueItem[]
+      replays?: DemoPledge[]
+      refreshedAt?: number
       at: number
       error?: string
     }
@@ -189,6 +201,7 @@ export function createInitialGameState(): GameState {
     draftsQueue: [],
     decisionsLog: [],
     tombstones: [],
+    sourceRefreshAt: Date.now(),
   }
 }
 
@@ -512,17 +525,44 @@ function stableDraftId(sourceUrl: string): string {
   return `draft-${(hash >>> 0).toString(36)}`
 }
 
-export async function generateDraftsFromAdapter(
+export type GeneratedSourceImport = {
+  drafts: DraftQueueItem[]
+  replays: DemoPledge[]
+}
+
+async function draftRealMatch(candidate: LiveFootballCandidate): Promise<Draft> {
+  const template = draftLiveFootball(candidate)
+  return draftPledge(
+    { complete: () => Promise.resolve(JSON.stringify(template)) },
+    candidate,
+  )
+}
+
+export async function generateSourceImport(
   adapter: ModeAwareSourceAdapter,
-): Promise<DraftQueueItem[]> {
+): Promise<GeneratedSourceImport> {
   const candidates = await scout(adapter, '')
   const llm = new FixtureLlm()
   const createdAt = Date.now()
+  const replays = candidates
+    .filter(isLiveFootballCandidate)
+    .filter((candidate) => candidate.phase === 'REPLAY')
+    .slice(0, 3)
+    .map(replayCandidateToPledge)
+    .filter((pledge): pledge is DemoPledge => pledge !== null)
+  const regularCandidates = candidates.filter(
+    (candidate) => !isLiveFootballCandidate(candidate),
+  )
+  const upcomingCandidates = candidates
+    .filter(isLiveFootballCandidate)
+    .filter((candidate) => candidate.phase === 'UPCOMING')
+    .slice(0, 6)
+  const draftCandidates = [...regularCandidates, ...upcomingCandidates]
   const items = await Promise.all(
-    candidates.map(async (candidate) => {
+    draftCandidates.map(async (candidate) => {
       const live = isLiveFootballCandidate(candidate)
       const draft = live
-        ? draftLiveFootball(candidate)
+        ? await draftRealMatch(candidate)
         : await draftPledge(llm, candidate)
       const decision = decide(draft)
 
@@ -541,12 +581,19 @@ export async function generateDraftsFromAdapter(
     }),
   )
 
-  return items.filter(
-    (item) =>
-      item.sourceMode !== 'live' ||
-      item.decision.tier === 'GREEN' ||
-      item.decision.tier === 'ORANGE',
-  )
+  return {
+    drafts: items.filter(
+      (item) => item.sourceMode !== 'live' ||
+        (item.decision.action === 'PUBLISH' && item.decision.tier === 'GREEN'),
+    ),
+    replays,
+  }
+}
+
+export async function generateDraftsFromAdapter(
+  adapter: ModeAwareSourceAdapter,
+): Promise<DraftQueueItem[]> {
+  return (await generateSourceImport(adapter)).drafts
 }
 
 export function generateFixtureDrafts(): Promise<DraftQueueItem[]> {
@@ -566,6 +613,50 @@ function sourceLabel(item: DraftQueueItem, independentGroup: string, index: numb
   return `Source en direct ${index + 1}`
 }
 
+function replaySourceLabel(independentGroup: string, index: number): string {
+  if (independentGroup === 'football-data') return 'football-data.org'
+  if (independentGroup === 'openfootball') return 'openfootball'
+  return `Source en direct ${index + 1}`
+}
+
+export function replayCandidateToPledge(
+  candidate: LiveFootballCandidate,
+): DemoPledge | null {
+  const match = candidate.matches.find(
+    (item) => item.status === 'FINISHED' && item.scoreFt !== null,
+  )
+  const level = evidenceLevel(candidate.evidenceSources)
+  if (candidate.phase !== 'REPLAY' || candidate.conflict || !match?.scoreFt || level < 3) {
+    return null
+  }
+
+  const outcome: FinalState = match.scoreFt[0] > match.scoreFt[1]
+    ? 'KEPT'
+    : 'BROKEN'
+  const label = "Rediffusion d'un vrai résultat (saison 2025-26)"
+
+  return {
+    id: stableDraftId(`replay|${candidate.title}|${candidate.publishedAt}`)
+      .replace('draft-', 'replay-'),
+    category: 'SPORT',
+    question: `${match.home} gagnera-t-il contre ${match.away} ?`,
+    criteria: `Le score après 90 minutes doit donner plus de buts à ${match.home} qu’à ${match.away}.`,
+    deadline: new Date(Date.parse(match.kickoffUtc) + 2 * 60 * 60 * 1_000)
+      .toISOString(),
+    state: outcome,
+    evidenceLevel: level,
+    tier: 'GREEN',
+    liveSource: true,
+    liveKind: 'REPLAY',
+    realMatchLabel: label,
+    stakes: { KEPT: 0, BROKEN: 0 },
+    sources: candidate.evidenceSources.map((source, index) => ({
+      ...source,
+      label: replaySourceLabel(source.independentGroup, index),
+    })),
+  }
+}
+
 function draftToPledge(item: DraftQueueItem): DemoPledge | null {
   const decision = decide(item.draft)
   if (decision.action === 'REJECT' || decision.tier === 'BLOCKED') {
@@ -574,6 +665,7 @@ function draftToPledge(item: DraftQueueItem): DemoPledge | null {
 
   return {
     id: item.id,
+    category: item.sourceMode === 'live' ? 'SPORT' : 'WORLD',
     question: item.draft.question,
     criteria: item.draft.criteria,
     deadline: item.draft.deadline,
@@ -581,6 +673,8 @@ function draftToPledge(item: DraftQueueItem): DemoPledge | null {
     evidenceLevel: evidenceLevel(item.draft.sources),
     tier: decision.tier,
     liveSource: item.sourceMode === 'live',
+    liveKind: item.sourceMode === 'live' ? 'UPCOMING' : undefined,
+    realMatchLabel: item.sourceMode === 'live' ? 'Match réel' : undefined,
     unconfirmed: decision.tier === 'ORANGE',
     stakes: { KEPT: 0, BROKEN: 0 },
     sources: item.draft.sources.map((source, index) => ({
@@ -638,6 +732,7 @@ function handleGeneratedDrafts(
     (item) =>
       item.decision.action === 'QUEUE_APPROVAL' &&
       item.decision.tier !== 'BLOCKED' &&
+      item.sourceMode !== 'live' &&
       !existingQueueIds.has(item.id) &&
       !existingPledgeIds.has(item.id),
   )
@@ -646,19 +741,43 @@ function handleGeneratedDrafts(
       (item) =>
         item.decision.action === 'PUBLISH' &&
         item.decision.tier !== 'BLOCKED' &&
+        (item.sourceMode !== 'live' || item.decision.tier === 'GREEN') &&
         !existingPledgeIds.has(item.id),
     )
     .map(draftToPledge)
     .filter((pledge): pledge is DemoPledge => pledge !== null)
+  const importedReplays = (action.replays ?? []).filter((pledge) =>
+    pledge.liveKind === 'REPLAY' &&
+    pledge.tier === 'GREEN' &&
+    pledge.evidenceLevel >= 3 &&
+    (pledge.state === 'KEPT' || pledge.state === 'BROKEN') &&
+    !existingPledgeIds.has(pledge.id),
+  )
+  const replayResolutions = Object.fromEntries(
+    importedReplays.map((pledge) => [
+      pledge.id,
+      {
+        outcome: pledge.state as FinalState,
+        settlementKind: 'PAYOUT' as const,
+        payouts: [],
+        playerSouls: state.player.souls,
+        unpaidPool: 0,
+        resolvedBy: 'ai' as const,
+        reason: pledge.realMatchLabel ?? 'Résultat réel confirmé.',
+      },
+    ]),
+  )
   const reason = action.error?.trim()
     ? `Génération interrompue : ${action.error.trim()}`
-    : `${reviewed.length} brouillon(s) classé(s) par le Gardien.`
+    : `${reviewed.length} brouillon(s) classé(s) par le Gardien et ${importedReplays.length} rediffusion(s) confirmée(s).`
 
   return appendDecision(
     {
       ...state,
       draftsQueue: [...state.draftsQueue, ...waiting],
-      pledges: [...published, ...state.pledges],
+      pledges: [...published, ...importedReplays, ...state.pledges],
+      resolutions: { ...state.resolutions, ...replayResolutions },
+      sourceRefreshAt: action.refreshedAt ?? state.sourceRefreshAt,
     },
     'ai',
     action.type,
@@ -863,7 +982,12 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
   if (
     !isOpenForStake(pledge) ||
     state.resolutions[pledge.id] ||
-    !validateStake(state.player.souls, action.amount).ok
+    !validateStake(
+      state.player.souls,
+      action.amount,
+      totalStakedOnDay(state.playerStakes, action.at),
+      action.dailyStakeCap ?? DEFAULT_DAILY_STAKE_CAP,
+    ).ok
   ) {
     return state
   }
@@ -900,8 +1024,11 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
 function isStoredGameState(value: unknown): value is Omit<
   GameState,
-  'draftsQueue' | 'decisionsLog' | 'tombstones'
-> & Partial<Pick<GameState, 'draftsQueue' | 'decisionsLog' | 'tombstones'>> {
+  'draftsQueue' | 'decisionsLog' | 'tombstones' | 'sourceRefreshAt'
+> & Partial<Pick<
+  GameState,
+  'draftsQueue' | 'decisionsLog' | 'tombstones' | 'sourceRefreshAt'
+>> {
   if (!value || typeof value !== 'object') {
     return false
   }
@@ -942,21 +1069,34 @@ function loadGameState(): GameState {
 
     return {
       ...parsed,
+      pledges: parsed.pledges.map((pledge) => {
+        const builtIn = demoPledges.find((item) => item.id === pledge.id)
+        return {
+          ...pledge,
+          category: pledge.category ?? builtIn?.category ??
+            (pledge.liveSource ? 'SPORT' : 'WORLD'),
+        }
+      }),
       resolutions,
       draftsQueue: Array.isArray(parsed.draftsQueue) ? parsed.draftsQueue : [],
       decisionsLog: Array.isArray(parsed.decisionsLog) ? parsed.decisionsLog : [],
       tombstones: Array.isArray(parsed.tombstones) ? parsed.tombstones : [],
+      sourceRefreshAt: typeof parsed.sourceRefreshAt === 'number' &&
+        Number.isFinite(parsed.sourceRefreshAt)
+        ? parsed.sourceRefreshAt
+        : Date.now(),
     }
   } catch {
     return createInitialGameState()
   }
 }
 
-export function useGame() {
+export function useGame(dailyStakeCap = DEFAULT_DAILY_STAKE_CAP) {
   const [state, dispatch] = useReducer(gameReducer, undefined, loadGameState)
   const [sourceAdapter] = useState<ModeAwareSourceAdapter>(() => createAdapter())
   const [sourceMode, setSourceMode] = useState<AdapterMode>(sourceAdapter.mode)
   const [isGeneratingDrafts, setIsGeneratingDrafts] = useState(false)
+  const autoLoadStarted = useRef(false)
   const [verifyingPledgeIds, setVerifyingPledgeIds] = useState<readonly string[]>(
     [],
   )
@@ -970,8 +1110,15 @@ export function useGame() {
   }, [state])
 
   const stake = useCallback((pledgeId: string, side: Side, amount: number) => {
-    dispatch({ type: 'STAKE', pledgeId, side, amount, at: Date.now() })
-  }, [])
+    dispatch({
+      type: 'STAKE',
+      pledgeId,
+      side,
+      amount,
+      at: Date.now(),
+      dailyStakeCap,
+    })
+  }, [dailyStakeCap])
 
   const simulateResolution = useCallback(
     (pledgeId: string, proposedOutcome: ProposedOutcome) => {
@@ -1043,21 +1190,47 @@ export function useGame() {
 
     setIsGeneratingDrafts(true)
     try {
-      const drafts = await generateDraftsFromAdapter(sourceAdapter)
-      setSourceMode(sourceAdapter.mode)
-      dispatch({ type: 'GENERATE_DRAFTS', drafts, at: Date.now() })
-    } catch (error) {
+      const generated = await generateSourceImport(sourceAdapter)
+      const refreshedAt = sourceAdapter.lastRefreshAt ?? Date.now()
       setSourceMode(sourceAdapter.mode)
       dispatch({
         type: 'GENERATE_DRAFTS',
-        drafts: [],
+        ...generated,
+        refreshedAt,
         at: Date.now(),
-        error: error instanceof Error ? error.message : 'Erreur inconnue',
       })
+    } catch (error) {
+      try {
+        const fallback = await generateSourceImport(new FixtureAdapter())
+        setSourceMode('demo')
+        dispatch({
+          type: 'GENERATE_DRAFTS',
+          ...fallback,
+          refreshedAt: Date.now(),
+          at: Date.now(),
+          error: `Repli démo après erreur live : ${error instanceof Error ? error.message : 'erreur inconnue'}`,
+        })
+      } catch {
+        setSourceMode('demo')
+        dispatch({
+          type: 'GENERATE_DRAFTS',
+          drafts: [],
+          replays: [],
+          refreshedAt: Date.now(),
+          at: Date.now(),
+          error: error instanceof Error ? error.message : 'Erreur inconnue',
+        })
+      }
     } finally {
       setIsGeneratingDrafts(false)
     }
   }, [isGeneratingDrafts, sourceAdapter])
+
+  useEffect(() => {
+    if (autoLoadStarted.current || sourceAdapter.mode !== 'live') return
+    autoLoadStarted.current = true
+    void generateDrafts()
+  }, [generateDrafts, sourceAdapter])
 
   const approveDraft = useCallback((draftId: string) => {
     dispatch({ type: 'APPROVE_DRAFT', draftId, at: Date.now() })

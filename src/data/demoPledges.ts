@@ -9,8 +9,11 @@ export type DemoSource = Source & {
   label: string
 }
 
+export type PledgeCategory = 'SPORT' | 'POLITICS' | 'CELEBRITIES' | 'WORLD'
+
 export type DemoPledge = {
   id: string
+  category: PledgeCategory
   question: string
   criteria: string
   deadline: string
@@ -18,6 +21,8 @@ export type DemoPledge = {
   evidenceLevel: EvidenceLevel
   tier: Exclude<SafetyTier, 'BLOCKED'>
   liveSource?: boolean
+  liveKind?: 'UPCOMING' | 'REPLAY'
+  realMatchLabel?: string
   unconfirmed?: boolean
   stakes: Readonly<Record<Side, number>>
   sources: readonly DemoSource[]
@@ -38,6 +43,7 @@ function hoursFromNow(hours: number): string {
 export const demoPledges: readonly DemoPledge[] = [
   {
     id: 'finale-coupe-demo',
+    category: 'SPORT',
     question: 'Le FC Démo remportera-t-il la finale contre l’AS Test ?',
     criteria: 'Le résultat officiel après le temps réglementaire et les éventuelles prolongations désigne le FC Démo vainqueur.',
     deadline: hoursFromNow(6),
@@ -62,6 +68,7 @@ export const demoPledges: readonly DemoPledge[] = [
   },
   {
     id: 'navette-ville-exemple',
+    category: 'POLITICS',
     question: 'La Mairie de Ville-Exemple lancera-t-elle la navette nocturne avant l’échéance ?',
     criteria: 'Au moins une navette doit effectuer un trajet public complet sur l’itinéraire annoncé.',
     deadline: hoursFromNow(6),
@@ -80,6 +87,7 @@ export const demoPledges: readonly DemoPledge[] = [
   },
   {
     id: 'rapport-centre-sante-demo',
+    category: 'WORLD',
     question: 'Le Centre de santé Démo publiera-t-il son bulletin hebdomadaire avant midi ?',
     criteria: 'Le bulletin daté doit être accessible au public sur le portail fictif du centre avant l’échéance.',
     deadline: hoursFromNow(6),
@@ -98,6 +106,7 @@ export const demoPledges: readonly DemoPledge[] = [
   },
   {
     id: 'academie-demo-tournoi',
+    category: 'SPORT',
     question: 'L’Académie Démo gagnera-t-elle son tournoi amical ?',
     criteria: 'Le classement final publié par l’organisateur place l’Académie Démo en première position.',
     deadline: hoursFromNow(48),
@@ -116,6 +125,7 @@ export const demoPledges: readonly DemoPledge[] = [
   },
   {
     id: 'passage-pieton-exemple',
+    category: 'POLITICS',
     question: 'La Mairie de Quartier-Exemple rouvrira-t-elle le passage piéton annoncé ?',
     criteria: 'Le passage doit être ouvert, signalé et praticable par le public avant l’échéance.',
     deadline: hoursFromNow(48),
@@ -134,10 +144,11 @@ export const demoPledges: readonly DemoPledge[] = [
   },
   {
     id: 'commission-archipel-resultats',
+    category: 'POLITICS',
     question: 'La Commission électorale d’Archipel-Exemple publiera-t-elle son tableau fictif à temps ?',
     criteria: 'Le tableau complet, daté et signé doit apparaître sur le portail de démonstration avant l’échéance.',
     deadline: hoursFromNow(48),
-    state: 'APPARITION',
+    state: 'MURMUR',
     evidenceLevel: 2,
     tier: 'RED',
     stakes: { KEPT: 510, BROKEN: 490 },
@@ -158,6 +169,7 @@ export const demoPledges: readonly DemoPledge[] = [
   },
   {
     id: 'coupe-des-brumes',
+    category: 'SPORT',
     question: 'Le Sporting Imaginaire atteindra-t-il la finale de la Coupe des Brumes ?',
     criteria: 'Le tableau officiel fictif doit qualifier le Sporting Imaginaire pour la finale.',
     deadline: hoursFromNow(240),
@@ -176,6 +188,7 @@ export const demoPledges: readonly DemoPledge[] = [
   },
   {
     id: 'rapport-ministre-exemple',
+    category: 'POLITICS',
     question: 'Le Ministre de l’Exemple remettra-t-il le rapport sur les lampadaires fictifs ?',
     criteria: 'Le rapport complet doit être enregistré et rendu public sur le portail de Ville-Exemple.',
     deadline: hoursFromNow(240),
@@ -200,6 +213,7 @@ export const demoPledges: readonly DemoPledge[] = [
   },
   {
     id: 'tribunal-calendrier-demo',
+    category: 'WORLD',
     question: 'Le Tribunal de Démonstration publiera-t-il le calendrier de l’audience fictive ?',
     criteria: 'Un calendrier daté doit être validé par le greffe fictif et accessible avant l’échéance.',
     deadline: hoursFromNow(240),
@@ -218,6 +232,7 @@ export const demoPledges: readonly DemoPledge[] = [
   },
   {
     id: 'match-rivage-demo',
+    category: 'SPORT',
     question: 'Le Club Rivage-Démo a-t-il remporté le match amical annoncé ?',
     criteria: 'La feuille de match officielle fictive indique une victoire du Club Rivage-Démo.',
     deadline: hoursFromNow(-30),
@@ -236,6 +251,7 @@ export const demoPledges: readonly DemoPledge[] = [
   },
   {
     id: 'fontaine-place-exemple',
+    category: 'POLITICS',
     question: 'La Mairie de Ville-Exemple a-t-elle remis en service la fontaine fictive à temps ?',
     criteria: 'La fontaine devait fonctionner en continu lors de deux contrôles indépendants avant l’échéance.',
     deadline: hoursFromNow(-72),
@@ -260,6 +276,7 @@ export const demoPledges: readonly DemoPledge[] = [
   },
   {
     id: 'alerte-clinique-imaginaire',
+    category: 'WORLD',
     question: 'La Clinique Imaginaire a-t-elle publié son exercice d’alerte fictif avant l’échéance ?',
     criteria: 'Le compte rendu daté devait être publié avec les horaires de début et de fin de l’exercice.',
     deadline: hoursFromNow(-120),

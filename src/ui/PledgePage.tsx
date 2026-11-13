@@ -1,9 +1,10 @@
-import { useMemo, useState, type CSSProperties, type FormEvent } from 'react'
+import { useState, type CSSProperties, type FormEvent } from 'react'
 import type { DemoPledge } from '../data/demoPledges'
 import type { FinalState, LifecycleState } from '../engine/lifecycle'
 import { timeState } from '../engine/lifecycle'
 import { validateStake, type StakeValidation } from '../engine/stake'
 import { poolPercentages, type Side } from '../engine/souls'
+import { translate, type Locale } from '../i18n'
 import type { Player, SimulationResult } from '../state/useGame'
 import { formatCountdown } from './pledgeCardProps'
 import { GhostFigure } from './GhostFigure'
@@ -54,6 +55,7 @@ const VALIDATION_MESSAGES: Record<
   NOT_INTEGER: 'La mise doit être un nombre entier.',
   BELOW_MINIMUM: 'La mise minimale est de 10 Âmes.',
   ABOVE_BALANCE: 'Votre solde ne contient pas assez d’Âmes.',
+  DAILY_CAP_EXCEEDED: 'Votre plafond quotidien de mises est atteint.',
 }
 
 type SplitStyle = CSSProperties & {
@@ -66,6 +68,9 @@ type PledgePageProps = {
   result?: SimulationResult
   onBack: () => void
   onStake: (pledgeId: string, side: Side, amount: number) => void
+  stakedToday: number
+  dailyStakeCap: number
+  locale: Locale
   isVerifying: boolean
   onRunVerifiers: (pledgeId: string) => Promise<void>
   onHumanResolve: (
@@ -90,6 +95,9 @@ export function PledgePage({
   result,
   onBack,
   onStake,
+  stakedToday,
+  dailyStakeCap,
+  locale,
   isVerifying,
   onRunVerifiers,
   onHumanResolve,
@@ -100,17 +108,24 @@ export function PledgePage({
   const [confirmation, setConfirmation] = useState('')
   const [guardianReason, setGuardianReason] = useState('')
   const [showCorrection, setShowCorrection] = useState(false)
-  const now = useMemo(() => new Date(), [])
+  const now = new Date()
   const state = timeState(pledge.state, now, new Date(pledge.deadline))
   const countdown = formatCountdown(new Date(pledge.deadline), now)
   const percentages = poolPercentages(pledge.stakes)
   const splitStyle: SplitStyle = { '--kept-share': `${percentages.KEPT}%` }
-  const validation = validateStake(player.souls, amount)
+  const validation = validateStake(
+    player.souls,
+    amount,
+    stakedToday,
+    dailyStakeCap,
+  )
   const open = state === 'APPARITION' || state === 'HAUNTING'
   const canStake = open && !result
   const tier = TIER_DETAILS[pledge.tier]
   const verification = pledge.verification
   const guardianReasonReady = guardianReason.trim().length > 0
+  const noMoneyNotice = translate(locale, 'notice.noMoney')
+  const dailyCapLabel = translate(locale, 'notice.dailyCap')
 
   function submitStake(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -152,7 +167,9 @@ export function PledgePage({
         <GhostFigure state={state} evidenceLevel={pledge.evidenceLevel} />
         <div>
           <div className="pledge-page__badges">
-            <span>{pledge.liveSource ? 'Résultat réel' : 'Scénario fictif'}</span>
+            <span>{pledge.liveSource
+              ? pledge.realMatchLabel ?? (pledge.liveKind === 'UPCOMING' ? 'Match réel' : 'Résultat réel')
+              : 'Scénario fictif'}</span>
             <span>Risque : {tier.label}</span>
           </div>
           <h2 id="pledge-page-title">{pledge.question}</h2>
@@ -271,7 +288,7 @@ export function PledgePage({
           </button>
 
           <p className="stake-sheet__notice">
-            Les Âmes n'ont aucune valeur monétaire et ne peuvent ni s'acheter ni se retirer
+            {dailyCapLabel} : {stakedToday} / {dailyStakeCap} Âmes. {noMoneyNotice}
           </p>
         </form>
 

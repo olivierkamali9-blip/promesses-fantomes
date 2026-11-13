@@ -108,6 +108,7 @@
   background: var(--color-spectral);
 }
 
+.feed__categories button:focus-visible,
 .feed__tabs button:focus-visible,
 .feed__player button:focus-visible,
 .app-view-link:focus-visible {
@@ -328,4 +329,85 @@
     scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+.feed__categories {
+  display: flex;
+  gap: 0.5rem;
+  margin-inline: -1rem;
+  padding: 0.1rem 1rem 0.35rem;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scroll-snap-type: x proximity;
+}
+
+.feed__categories button {
+  min-width: max-content;
+  min-height: 44px;
+  padding-inline: 0.9rem;
+  border: 1px solid rgb(154 148 176 / 30%);
+  border-radius: 999px;
+  color: var(--color-muted);
+  background: var(--color-surface);
+  font-size: 0.75rem;
+  font-weight: 800;
+  scroll-snap-align: start;
+  cursor: pointer;
+}
+
+.feed__categories button[aria-pressed='true'] {
+  border-color: var(--color-spectral);
+  color: var(--color-bg);
+  background: var(--color-spectral);
+  text-decoration: underline;
+  text-underline-offset: 0.18rem;
+}
+
+.feed__empty {
+  margin: 0;
+  padding: 2rem 1rem;
+  border: 1px dashed rgb(124 255 196 / 28%);
+  border-radius: 1rem;
+  color: var(--color-muted);
+  text-align: center;
+}
+
+.feed__source-status {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.72rem;
+  line-height: 1.4;
+}
+
+.feed__source-status time {
+  color: var(--color-bone);
+  font-variant-numeric: tabular-nums;
+}
+
+.feed__replays {
+  display: grid;
+  gap: 0.85rem;
+  margin-top: 1rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid rgb(216 210 194 / 18%);
+}
+
+.feed__replays h3 {
+  margin: 0;
+  color: var(--color-bone);
+  font-family: var(--font-display);
+  font-size: 1.75rem;
+}
+
+.feed__replays > p {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+.feed__replays .pledge-card__real {
+  max-width: 100%;
+  line-height: 1.25;
+  text-transform: none;
 }

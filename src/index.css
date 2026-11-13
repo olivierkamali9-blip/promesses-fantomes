@@ -185,3 +185,28 @@ input {
     animation: none;
   }
 }
+
+#main-content:focus {
+  outline: none;
+}
+
+html[data-reduce-motion='true'] *,
+html[data-reduce-motion='true'] *::before,
+html[data-reduce-motion='true'] *::after,
+html[data-data-saver='true'] *,
+html[data-data-saver='true'] *::before,
+html[data-data-saver='true'] *::after {
+  scroll-behavior: auto !important;
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+}
+
+html[data-data-saver='true'] body {
+  background: var(--color-bg);
+}
+
+html[data-data-saver='true'] * {
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}

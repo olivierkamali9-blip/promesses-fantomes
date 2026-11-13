@@ -5,6 +5,7 @@ import { HttpAdapter } from './httpAdapter'
 export type AdapterMode = 'live' | 'demo'
 export type ModeAwareSourceAdapter = SourceAdapter & {
   readonly mode: AdapterMode
+  readonly lastRefreshAt?: number | null
 }
 
 class FallbackSourceAdapter implements ModeAwareSourceAdapter {
@@ -17,6 +18,12 @@ class FallbackSourceAdapter implements ModeAwareSourceAdapter {
 
   get mode(): AdapterMode {
     return this.activeMode
+  }
+
+  get lastRefreshAt(): number | null {
+    if (this.activeMode !== 'live') return null
+    return (this.live as SourceAdapter & { readonly lastRefreshAt?: number | null })
+      .lastRefreshAt ?? null
   }
 
   async searchNews(query: string) {

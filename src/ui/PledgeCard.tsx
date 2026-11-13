@@ -37,7 +37,9 @@ export function PledgeCard({ pledge, state, now, href }: PledgeCardProps) {
       <article className="pledge-card">
         <div className="pledge-card__badges">
           {pledge.liveSource ? (
-            <span className="pledge-card__real">Résultat réel</span>
+            <span className="pledge-card__real">
+              {pledge.realMatchLabel ?? (pledge.liveKind === 'UPCOMING' ? 'Match réel' : 'Résultat réel')}
+            </span>
           ) : (
             <span className="pledge-card__fictional">Scénario fictif</span>
           )}

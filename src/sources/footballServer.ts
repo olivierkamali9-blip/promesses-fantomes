@@ -1,8 +1,9 @@
 import {
   normalizeFootballData,
   normalizeOpenFootball,
-  type LiveMatch,
-} from './footballLive'
+  openFootballSeasonFolder,
+} from './footballLive.js'
+import type { LiveMatch } from './footballLive'
 
 export type FootballApiPayload = {
   matches: LiveMatch[]
@@ -48,7 +49,10 @@ function selectMode(matches: readonly LiveMatch[], mode: QueryMode): LiveMatch[]
   const wantedStatus = mode === 'results' ? 'FINISHED' : 'SCHEDULED'
   return matches
     .filter((match) => match.status === wantedStatus)
-    .sort((left, right) => Date.parse(left.kickoffUtc) - Date.parse(right.kickoffUtc))
+    .sort((left, right) => mode === 'results'
+      ? Date.parse(right.kickoffUtc) - Date.parse(left.kickoffUtc)
+      : Date.parse(left.kickoffUtc) - Date.parse(right.kickoffUtc),
+    )
     .slice(0, 40)
 }
 
@@ -80,7 +84,7 @@ export async function handleFootballFixtures(
   const warnings: string[] = []
   const footballDataRequest = footballDataToken?.trim()
     ? fetchJson(
-        `https://api.football-data.org/v4/competitions/${encodeURIComponent(competition)}/matches`,
+        `https://api.football-data.org/v4/competitions/${encodeURIComponent(competition)}/matches?season=${encodeURIComponent(season.slice(0, 4))}`,
         { 'X-Auth-Token': footballDataToken.trim() },
       )
     : null
@@ -89,7 +93,7 @@ export async function handleFootballFixtures(
   }
 
   const openFootballRequest = fetchJson(
-    `https://raw.githubusercontent.com/openfootball/football.json/master/${encodeURIComponent(season)}/en.1.json`,
+    `https://raw.githubusercontent.com/openfootball/football.json/master/${encodeURIComponent(openFootballSeasonFolder(season))}/en.1.json`,
   )
   const [footballDataResult, openFootballResult] = await Promise.allSettled([
     footballDataRequest ?? Promise.resolve(null),

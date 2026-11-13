@@ -1,5 +1,5 @@
 import type { Candidate, Draft } from '../ai/types'
-import type { Source } from '../engine/evidence'
+import { evidenceLevel, type Source } from '../engine/evidence.js'
 
 export type LiveMatchStatus = 'SCHEDULED' | 'FINISHED' | 'OTHER'
 
@@ -18,8 +18,11 @@ export type ConfirmedResult = {
   conflict: boolean
 }
 
+export type LiveFootballPhase = 'UPCOMING' | 'REPLAY'
+
 export type LiveFootballCandidate = Candidate & {
   candidateKind: 'live-football'
+  phase: LiveFootballPhase
   matches: LiveMatch[]
   evidenceSources: Source[]
   conflict: boolean
@@ -31,6 +34,20 @@ const FOOTBALL_DATA_SOURCE = 'football-data.org'
 const OPEN_FOOTBALL_SOURCE = 'openfootball'
 const FOOTBALL_DATA_URL = 'https://www.football-data.org/'
 const OPEN_FOOTBALL_URL = 'https://github.com/openfootball/football.json'
+const DAY_MS = 24 * 60 * 60 * 1_000
+
+export function openFootballSeasonFolder(season: string): string {
+  if (/^\d{4}-\d{2}$/.test(season)) {
+    return season
+  }
+
+  if (/^\d{4}$/.test(season)) {
+    const year = Number(season)
+    return `${season}-${String((year + 1) % 100).padStart(2, '0')}`
+  }
+
+  return season
+}
 
 function isRecord(value: unknown): value is UnknownRecord {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -317,13 +334,22 @@ export function footballMatchesToCandidates(
 
     const confirmation = confirmResult(match, partner)
     const hasFinalResult = match.status === 'FINISHED' || partner?.status === 'FINISHED'
+    const scheduleMatches = partner ? [match, partner] : [match]
     const evidenceSources = hasFinalResult
       ? confirmation.sources
-      : [scheduleSource(match)]
+      : scheduleMatches
+          .map(scheduleSource)
+          .filter(
+            (source, sourceIndex, all) =>
+              all.findIndex((candidate) =>
+                candidate.independentGroup === source.independentGroup,
+              ) === sourceIndex,
+          )
     const title = `${match.home} – ${match.away} (${match.competition})`
 
     candidates.push({
       candidateKind: 'live-football',
+      phase: hasFinalResult ? 'REPLAY' : 'UPCOMING',
       title,
       sourceUrl: sourceDetails(match.sourceName).url,
       excerpt: `Match de football prévu le ${match.kickoffUtc}.`,
@@ -339,9 +365,35 @@ export function footballMatchesToCandidates(
   )
 }
 
-export function isLiveFootballCandidate(value: Candidate): value is LiveFootballCandidate {
+export function selectLiveFootballCandidates(
+  candidates: readonly LiveFootballCandidate[],
+  now: number,
+): LiveFootballCandidate[] {
+  const latestUpcoming = now + 7 * DAY_MS
+  const upcoming = candidates
+    .filter((candidate) => {
+      const kickoff = Date.parse(candidate.publishedAt)
+      return candidate.phase === 'UPCOMING' &&
+        kickoff >= now && kickoff <= latestUpcoming
+    })
+    .sort((left, right) => Date.parse(left.publishedAt) - Date.parse(right.publishedAt))
+    .slice(0, 6)
+  const replays = candidates
+    .filter((candidate) =>
+      candidate.phase === 'REPLAY' &&
+      !candidate.conflict &&
+      evidenceLevel(candidate.evidenceSources) >= 3,
+    )
+    .sort((left, right) => Date.parse(right.publishedAt) - Date.parse(left.publishedAt))
+    .slice(0, 3)
+
+  return [...upcoming, ...replays]
+}
+
+export function isLiveFootballCandidate(value: unknown): value is LiveFootballCandidate {
   const candidate = value as Partial<LiveFootballCandidate>
   return candidate.candidateKind === 'live-football' &&
+    (candidate.phase === 'UPCOMING' || candidate.phase === 'REPLAY') &&
     Array.isArray(candidate.matches) &&
     candidate.matches.length > 0 &&
     candidate.matches.every(isLiveMatch) &&
@@ -352,9 +404,9 @@ export function isLiveFootballCandidate(value: Candidate): value is LiveFootball
 export function draftLiveFootball(candidate: LiveFootballCandidate): Draft {
   const match = candidate.matches[0]
   return {
-    question: `${match.home} remportera-t-il le match de football contre ${match.away} ?`,
-    criteria: `Le score final à temps plein doit donner plus de buts à ${match.home} qu’à ${match.away}.`,
-    deadline: match.kickoffUtc,
+    question: `${match.home} gagnera-t-il contre ${match.away} ?`,
+    criteria: `Le score après 90 minutes doit donner plus de buts à ${match.home} qu’à ${match.away}.`,
+    deadline: new Date(Date.parse(match.kickoffUtc) + 2 * 60 * 60 * 1_000).toISOString(),
     sides: {
       kept: {
         argument: `${match.home} est annoncé pour ce match de football.`,

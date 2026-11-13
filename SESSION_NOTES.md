@@ -88,3 +88,38 @@ Have the GitHub helper run the full Vitest and production build checks.
 1. Run the Vitest suite in non-watch mode.
 2. Run the TypeScript/Vite production build.
 3. Commit task 14 after those checks pass.
+
+## Session — 2026-11-13 — Task 15 extended app shell
+
+### Done
+- Replaced the old header navigation with a sticky mobile top bar and fixed five-tab bottom navigation, including safe-area spacing, 44 px targets, active text/icon/underline, Souls and Guardian draft badges.
+- Added category data for demo and live football pledges, pure category filtering, scrollable Feed chips, and exclusion of pending MURMUR items from the public Feed.
+- Added lazy-loaded My Stakes, Profile, and Settings routes with stake outcomes and totals, smoothed prophet rank, recent history, bilingual shell/settings/notices, persisted accessibility/data preferences, a configurable daily stake cap, demo reset, and the required About disclosures.
+- Enforced the daily cap in the pure stake engine and reducer, added reduced-motion/data-saver styling, and added fast-check coverage for categories, cap enforcement, and prophet rank plus bilingual dictionary parity coverage.
+- Per the user’s instruction, no command, test, build, network call, or Git operation was run.
+
+### Next
+Have the GitHub helper run the full Vitest and production TypeScript/Vite checks and report any compile or behavior failures.
+
+### Next steps
+1. Run the Vitest suite in non-watch mode.
+2. Run the production build and verify the initial JavaScript remains under 200 KB.
+3. Check the shell at 360 px and test all five tabs, keyboard focus, safe areas, language, reduced motion, data saver, and the daily cap before committing.
+
+## Session — 2026-11-13 — Task 14 production fixes
+
+### Done
+- Fixed Node ESM runtime imports in the Vercel route and football server, and added a TypeScript-AST test that requires `.js` on runtime relative imports while ignoring erased type imports.
+- Added pure OpenFootball season-folder conversion, wired `2025` to `2025-26` URLs, passed the start year to football-data.org, and added examples plus a fast-check year property.
+- Added one-per-session automatic live loading through Scout, `draftPledge`, and Guardian; upcoming matches are limited to six within seven days, use a kickoff-plus-two-hours deadline, remain GREEN, and display a `Match réel` badge.
+- Added atomic upcoming/results requests, a guarded ten-minute localStorage cache, whole-pipeline demo fallback, source mode/refresh metadata, and a three-item Rediffusion section built only from two-source L3 results from 2025-26.
+- Added evidence tests for two agreeing sources, one source, conflicting scores, and GREEN real-match classification.
+- Per the user’s instruction, no command, test, build, network call, or Git operation was run.
+
+### Next
+Have the GitHub helper run the full suite and production deployment checks, especially Vercel’s Node ESM route and real provider payloads.
+
+### Next steps
+1. Run Vitest in non-watch mode and fix any static or property-test failure.
+2. Run the production build and invoke `/api/fixtures` for both upcoming and results modes with a server-side token.
+3. Verify cache reuse/expiry, six upcoming cards, three L3 replays, fallback mode, source timestamp, and real-match labels before committing.

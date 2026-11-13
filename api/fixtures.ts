@@ -1,4 +1,4 @@
-import { handleFootballFixtures } from '../src/sources/footballServer'
+import { handleFootballFixtures } from '../src/sources/footballServer.js'
 
 declare const process: {
   env: Readonly<Record<string, string | undefined>>

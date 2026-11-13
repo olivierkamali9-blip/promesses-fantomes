@@ -1,0 +1,240 @@
+.account-page {
+  display: grid;
+  gap: 1rem;
+}
+
+.account-page__heading {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: end;
+  justify-content: space-between;
+}
+
+.account-page__eyebrow {
+  margin: 0 0 0.25rem;
+  color: var(--color-ember);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.account-page h2,
+.account-page h3 {
+  margin: 0;
+  color: var(--color-bone);
+  font-family: var(--font-display);
+}
+
+.account-page h2 { font-size: clamp(2.1rem, 10vw, 3.5rem); }
+.account-page h3 { font-size: 1.45rem; }
+
+.account-page__card,
+.account-page__notice,
+.stake-history__item {
+  padding: 1rem;
+  border: 1px solid rgb(216 210 194 / 14%);
+  border-radius: 1rem;
+  background: var(--color-surface);
+}
+
+.account-page__stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.65rem;
+}
+
+.account-page__stat {
+  min-width: 0;
+  padding: 0.85rem;
+  border: 1px solid rgb(124 255 196 / 18%);
+  border-radius: 0.8rem;
+  background: rgb(124 255 196 / 5%);
+}
+
+.account-page__stat span {
+  display: block;
+  color: var(--color-muted);
+  font-size: 0.72rem;
+}
+
+.account-page__stat strong {
+  display: block;
+  margin-top: 0.25rem;
+  color: var(--color-spectral);
+  font-size: 1.35rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.account-page__notice {
+  margin: 0;
+  border-left: 3px solid var(--color-ember);
+  color: var(--color-bone);
+  font-size: 0.82rem;
+  line-height: 1.55;
+}
+
+.stake-history {
+  display: grid;
+  gap: 0.65rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stake-history__item {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.stake-history__item h3 {
+  font-family: var(--font-body);
+  font-size: 0.92rem;
+  line-height: 1.4;
+}
+
+.stake-history__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem 0.9rem;
+  justify-content: space-between;
+  color: var(--color-muted);
+  font-size: 0.76rem;
+}
+
+.stake-history__status {
+  color: var(--color-spectral);
+  font-weight: 800;
+}
+
+.account-page__empty {
+  margin: 0;
+  padding: 2rem 1rem;
+  border: 1px dashed rgb(124 255 196 / 28%);
+  border-radius: 1rem;
+  color: var(--color-muted);
+  line-height: 1.55;
+  text-align: center;
+}
+
+.prophet-rank {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.prophet-rank__score {
+  display: flex;
+  gap: 0.75rem;
+  align-items: baseline;
+}
+
+.prophet-rank__score strong {
+  color: var(--color-spectral);
+  font-family: var(--font-display);
+  font-size: 3.4rem;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.prophet-rank__score span {
+  color: var(--color-ember);
+  font-weight: 800;
+}
+
+.prophet-rank__thresholds,
+.settings-page__help {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+
+.account-page__button,
+.settings-page button,
+.settings-page input,
+.settings-page select {
+  min-height: 44px;
+}
+
+.account-page__button,
+.settings-page button {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  justify-content: center;
+  padding: 0.6rem 0.85rem;
+  border: 1px solid rgb(124 255 196 / 40%);
+  border-radius: 0.7rem;
+  color: var(--color-spectral);
+  background: transparent;
+  font-weight: 800;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.settings-page__group {
+  display: grid;
+  gap: 0.8rem;
+  margin: 0;
+  padding: 1rem;
+  border: 1px solid rgb(216 210 194 / 14%);
+  border-radius: 1rem;
+  background: var(--color-surface);
+}
+
+.settings-page__group legend {
+  padding-inline: 0.3rem;
+  color: var(--color-bone);
+  font-family: var(--font-display);
+  font-size: 1.35rem;
+  font-weight: 700;
+}
+
+.settings-page__toggle,
+.settings-page__field {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--color-text);
+  font-size: 0.85rem;
+}
+
+.settings-page__toggle input {
+  width: 1.4rem;
+  height: 1.4rem;
+  accent-color: var(--color-spectral);
+}
+
+.settings-page__field input,
+.settings-page__field select {
+  width: min(9rem, 45%);
+  padding: 0.5rem;
+  border: 1px solid rgb(154 148 176 / 40%);
+  border-radius: 0.6rem;
+  color: var(--color-text);
+  background: var(--color-bg);
+}
+
+.settings-page__about {
+  display: grid;
+  gap: 0.75rem;
+  color: var(--color-muted);
+  font-size: 0.82rem;
+  line-height: 1.6;
+}
+
+.settings-page__about p,
+.settings-page__about ul { margin: 0; }
+.settings-page__about strong { color: var(--color-text); }
+
+.account-page :is(a, button, input, select):focus-visible {
+  outline: 3px solid var(--color-ember);
+  outline-offset: 3px;
+}
+
+@media (min-width: 40rem) {
+  .account-page__stats { grid-template-columns: repeat(4, 1fr); }
+  .stake-history__item { grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
+}

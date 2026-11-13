@@ -1,10 +1,14 @@
 import fc from 'fast-check'
 import { describe, expect, it } from 'vitest'
 import { evidenceLevel } from '../engine/evidence'
+import { decide } from '../ai/guardian'
 import {
   confirmResult,
+  draftLiveFootball,
+  footballMatchesToCandidates,
   normalizeFootballData,
   normalizeOpenFootball,
+  openFootballSeasonFolder,
   sameTeam,
   type LiveMatch,
 } from './footballLive'
@@ -113,8 +117,38 @@ describe('football result confirmation', () => {
     expect(evidenceLevel(result.sources)).toBe(3)
   })
 
+  it('keeps a single reliable provider at evidence level 2', () => {
+    const result = confirmResult(
+      finishedMatch([2, 1], 'football-data.org'),
+      undefined,
+    )
+
+    expect(result.conflict).toBe(false)
+    expect(result.sources).toHaveLength(1)
+    expect(evidenceLevel(result.sources)).toBe(2)
+  })
+
   it('matches names without accents, punctuation, or club suffixes', () => {
     expect(sameTeam('Étoile F.C.', 'etoile AFC')).toBe(true)
+  })
+})
+
+describe('OpenFootball season folders', () => {
+  it('expands start years and preserves complete season folders', () => {
+    expect(openFootballSeasonFolder('2025')).toBe('2025-26')
+    expect(openFootballSeasonFolder('2026')).toBe('2026-27')
+    expect(openFootballSeasonFolder('2025-26')).toBe('2025-26')
+  })
+
+  it('maps every valid start year to the following two-digit year', () => {
+    fc.assert(
+      fc.property(fc.integer({ min: 1900, max: 9998 }), (year) => {
+        const expectedEnd = String(year + 1).slice(-2)
+        expect(openFootballSeasonFolder(String(year))).toBe(
+          `${year}-${expectedEnd}`,
+        )
+      }),
+    )
   })
 })
 
@@ -152,6 +186,45 @@ describe('football live properties', () => {
 
           expect(result.sources.length).toBeLessThan(2)
           expect(evidenceLevel(result.sources)).toBeLessThan(3)
+        },
+      ),
+    )
+  })
+
+  it('keeps publishable real-match drafts GREEN', () => {
+    fc.assert(
+      fc.property(
+        fc.integer({ min: 1, max: 10_000 }),
+        fc.integer({ min: 10_001, max: 20_000 }),
+        (homeId, awayId) => {
+          const kickoffUtc = '2099-08-16T14:00:00.000Z'
+          const scheduled = [
+            {
+              competition: 'Premier League',
+              kickoffUtc,
+              home: `Home ${homeId}`,
+              away: `Away ${awayId}`,
+              status: 'SCHEDULED' as const,
+              scoreFt: null,
+              sourceName: 'football-data.org',
+            },
+            {
+              competition: 'Premier League',
+              kickoffUtc,
+              home: `Home ${homeId}`,
+              away: `Away ${awayId}`,
+              status: 'SCHEDULED' as const,
+              scoreFt: null,
+              sourceName: 'openfootball',
+            },
+          ]
+          const candidate = footballMatchesToCandidates(scheduled)[0]
+          const draft = draftLiveFootball(candidate)
+          const decision = decide(draft)
+
+          expect(evidenceLevel(candidate.evidenceSources)).toBe(3)
+          expect(decision.tier).toBe('GREEN')
+          expect(decision.action).toBe('PUBLISH')
         },
       ),
     )
