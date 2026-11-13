@@ -3,11 +3,15 @@ import { totalStakedOnDay } from './engine/stake'
 import { translate } from './i18n'
 import { useGame } from './state/useGame'
 import { usePreferences } from './state/usePreferences'
-import { Feed } from './ui/Feed'
-import { PledgePage } from './ui/PledgePage'
 import { AppShell } from './ui/shell/AppShell'
 import { selectBrokenPledges } from './ui/cemeteryProps'
 
+const Feed = lazy(() =>
+  import('./ui/Feed').then((module) => ({ default: module.Feed })),
+)
+const PledgePage = lazy(() =>
+  import('./ui/PledgePage').then((module) => ({ default: module.PledgePage })),
+)
 const ApprovalQueue = lazy(() =>
   import('./ui/ApprovalQueue').then((module) => ({ default: module.ApprovalQueue })),
 )

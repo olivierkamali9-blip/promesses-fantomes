@@ -288,3 +288,19 @@ Push the remaining-task commit, use Vercel as the authoritative build check, the
 1. Push and confirm Vercel passes strict API TypeScript plus the 200 KB initial bundle gate.
 2. Complete SMOKE_TEST.md on a real phone and record the video from VIDEO_SCRIPT.md.
 3. Add the public video/Devpost URLs to SUBMISSION_DRAFT.md, publish the blog/social post, and submit in Costume Contest.
+
+## Session — 2026-11-13 — Bundle budget recovery
+
+### Done
+- Vercel rejected commit `ad238d2`; local generated assets identified the enforced cause: the initial JavaScript entry was 230,757 bytes versus the 204,800-byte limit.
+- Lazy-loaded PledgePage and the Feed, and moved the large deterministic LLM fixtures behind dynamic imports.
+- Rebuilt generated assets and measured the initial entry at 204,735 bytes. `node scripts/check-bundle.mjs` reported that exact value without a budget error.
+- TypeScript and Vite produced a complete new `dist`, including separate Feed, PledgePage, GhostFigure, and LLM chunks. The terminal bridge still reported exit code `-1`, so the upcoming Vercel build remains the authoritative end-to-end status.
+
+### Next
+Push the bundle split and confirm Vercel passes the strict API type-check and 200 KB budget.
+
+### Next steps
+1. Commit and push the lazy-loading correction.
+2. Confirm Vercel deployment succeeds and the production app loads the Feed chunk normally.
+3. Complete the real-phone checklist and external task 16/17 actions.

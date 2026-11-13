@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react'
 import { decideResolution, type ConsensusDecision } from '../ai/consensus'
 import { decide, type GuardianDecision } from '../ai/guardian'
-import { FixtureLlm } from '../ai/llm'
 import { validatePublishable } from '../ai/publishable'
 import { draftPledge } from '../ai/drafter'
 import { scout } from '../ai/scout'
@@ -564,6 +563,7 @@ export async function generateSourceImport(
   adapter: ModeAwareSourceAdapter,
 ): Promise<GeneratedSourceImport> {
   const candidates = await scout(adapter, '')
+  const { FixtureLlm } = await import('../ai/llm')
   const llm = new FixtureLlm()
   const createdAt = Date.now()
   const replays = candidates
@@ -1213,6 +1213,7 @@ export function useGame(dailyStakeCap = DEFAULT_DAILY_STAKE_CAP) {
 
       setVerifyingPledgeIds((ids) => [...ids, pledgeId])
       try {
+        const { FixtureLlm } = await import('../ai/llm')
         const checks = await runVerifiers(
           pledge,
           sourcesFor(pledge),
