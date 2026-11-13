@@ -83,7 +83,9 @@ function environmentDemoMode(): boolean {
       readonly env?: Readonly<Record<string, string | undefined>>
     }
   ).env
-  return environment?.VITE_DEMO === '1'
+  const officialLiveHost = typeof window !== 'undefined' &&
+    window.location.hostname === 'promesses-fantomes.vercel.app'
+  return environment?.VITE_DEMO === '1' && !officialLiveHost
 }
 
 export function createAdapter(

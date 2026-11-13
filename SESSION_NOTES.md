@@ -173,3 +173,18 @@ Push this focused visibility correction and verify the deployed upcoming endpoin
 1. Run the build and tests locally or through GitHub/Vercel.
 2. Push `src/sources/footballServer.ts`, `src/ui/Feed.tsx`, and `SESSION_NOTES.md`.
 3. Verify the production Feed and inspect `VITE_DEMO` only if it still reports `Sources : démo` after this deployment.
+
+## Session — 2026-11-13 — Force live on official deployment
+
+### Done
+- Verified the newly deployed football endpoint now returns future 2026-27 fixtures and two-source 2025-26 finished results.
+- Kept offline `VITE_DEMO=1` behavior for local and preview demos, while forcing the official `promesses-fantomes.vercel.app` hostname to use live adapters so an accidental Vercel demo variable cannot hide real data.
+- No secret or Vercel account setting was changed.
+
+### Next
+Push and verify that the official Feed reports live sources and shows the real replay section immediately; upcoming cards will appear when a fixture enters the seven-day window.
+
+### Next steps
+1. Commit and push the official-host live-mode override.
+2. Wait for Vercel’s automatic deployment and reload the app.
+3. Confirm `Sources : en direct` and `Rediffusion réelle` are visible.
