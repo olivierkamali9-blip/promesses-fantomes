@@ -347,3 +347,21 @@ Have the GitHub helper run the automated checks and confirm that live football a
 1. Run the Vitest suite in non-watch mode.
 2. Run the production build and bundle-size check.
 3. Open the deployed app with live sources enabled and verify both `/api/fixtures` and `/api/political` requests.
+
+## Session — 2026-11-13 — Fetch fix publication
+
+### Done
+- User committed the browser fetch receiver fix and session notes as commit `7b88eb9`.
+- User pushed commit `7b88eb9` from local `main` to `origin/main` successfully.
+
+### Validation
+- Verified the successful push from Git output: remote `main` advanced from `0620db8` to `7b88eb9`.
+- Tests and the production build were not run, so those commands remain unverified.
+
+### Next
+Confirm the Vercel deployment succeeds and the deployed app no longer reports `Illegal invocation`.
+
+### Next steps
+1. Check the Vercel deployment for commit `7b88eb9`.
+2. Test live football and political refreshes in the deployed Chromium app.
+3. Run the Vitest suite and production build if Vercel does not run both checks.
