@@ -1,5 +1,14 @@
-const CACHE_NAME = 'promesses-fantomes-shell-v2'
-const STATIC_FILES = ['/', '/index.html', '/manifest.webmanifest', '/icon.svg']
+const CACHE_NAME = 'promesses-fantomes-shell-v3'
+const STATIC_FILES = [
+  '/',
+  '/index.html',
+  '/manifest.webmanifest',
+  '/icon.svg',
+  '/icons/icon-192.png',
+  '/icons/icon-512.png',
+  '/icons/maskable-512.png',
+  '/icons/apple-touch-icon-180.png',
+]
 
 async function precacheAppShell() {
   const cache = await caches.open(CACHE_NAME)
@@ -9,6 +18,36 @@ async function precacheAppShell() {
     .map((match) => match[1])
   await cache.put('/index.html', response)
   await cache.addAll([...new Set([...STATIC_FILES, ...assets])])
+}
+
+async function cacheFirst(request) {
+  const cached = await caches.match(request)
+  if (cached) return cached
+
+  const response = await fetch(request)
+  if (response.ok) {
+    const cache = await caches.open(CACHE_NAME)
+    await cache.put(request, response.clone())
+  }
+  return response
+}
+
+async function networkFirst(request) {
+  try {
+    const response = await fetch(request)
+    if (response.ok) {
+      const cache = await caches.open(CACHE_NAME)
+      await cache.put(request, response.clone())
+    }
+    return response
+  } catch {
+    const cached = await caches.match(request)
+    if (cached) return cached
+    if (request.mode === 'navigate') {
+      return (await caches.match('/index.html')) ?? Response.error()
+    }
+    return Response.error()
+  }
 }
 
 self.addEventListener('install', (event) => {
@@ -31,21 +70,9 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(request.url)
   if (url.origin !== self.location.origin || url.pathname.startsWith('/api/')) return
 
-  event.respondWith((async () => {
-    try {
-      const response = await fetch(request)
-      if (response.ok) {
-        const cache = await caches.open(CACHE_NAME)
-        await cache.put(request, response.clone())
-      }
-      return response
-    } catch {
-      const cached = await caches.match(request)
-      if (cached) return cached
-      if (request.mode === 'navigate') {
-        return (await caches.match('/index.html')) ?? Response.error()
-      }
-      return Response.error()
-    }
-  })())
+  event.respondWith(
+    url.pathname.startsWith('/assets/')
+      ? cacheFirst(request)
+      : networkFirst(request),
+  )
 })

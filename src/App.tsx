@@ -1,6 +1,7 @@
 import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react'
 import { totalStakedOnDay } from './engine/stake'
 import { translate } from './i18n'
+import { useInstallPrompt } from './pwa/useInstallPrompt'
 import { useGame } from './state/useGame'
 import { usePreferences } from './state/usePreferences'
 import { AppShell } from './ui/shell/AppShell'
@@ -43,6 +44,7 @@ function App() {
   const [hash, setHash] = useState(() => window.location.hash)
   const [currentTime, setCurrentTime] = useState(() => Date.now())
   const { preferences, updatePreferences } = usePreferences()
+  const installState = useInstallPrompt()
   const {
     state,
     sourceMode,
@@ -153,6 +155,7 @@ function App() {
     page = (
       <Settings
         preferences={preferences}
+        installState={installState}
         onChange={updatePreferences}
         onResetDemo={resetDemo}
       />

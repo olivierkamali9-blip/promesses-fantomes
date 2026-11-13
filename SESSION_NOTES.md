@@ -365,3 +365,68 @@ Confirm the Vercel deployment succeeds and the deployed app no longer reports `I
 1. Check the Vercel deployment for commit `7b88eb9`.
 2. Test live football and political refreshes in the deployed Chromium app.
 3. Run the Vitest suite and production build if Vercel does not run both checks.
+
+## Session — 2026-11-13 — Non-sport feed diagnosis
+
+### Done
+- Traced political candidates from `/api/political` through live-source composition, Guardian classification, publication, and Feed filtering.
+- Confirmed that live mode hides all non-live demo pledges as soon as football returns candidates.
+- Confirmed that real politics can legitimately return no candidate under the exact-quote, attributable-speaker, and future-deadline rules.
+- Confirmed that Buzz/Stories has no source adapter and Celebrities has a UI category but no producer or seed data.
+
+### Validation
+- Verified the behavior by source inspection only; no code behavior was changed.
+- No test, build, deployment, or Git command was run, so those commands remain unverified.
+
+### Next
+Wait for approval to mix clearly labelled non-sport demo pledges into the live feed, then scope real non-sport source adapters separately.
+
+### Next steps
+1. Decide whether live mode should show clearly labelled demo fallback cards for missing non-sport categories.
+2. If approved, implement the smallest Feed-only fallback without weakening political safety checks.
+3. Define allowlisted, verifiable sources before adding real Celebrity or Buzz content.
+
+## Session — 2026-11-13 — Real-content expansion scope
+
+### Done
+- Confirmed the requested direction: production content should be real across RDC politics, presidents, combat sports, general news, cinema, and public-figure stories.
+- Identified official/current source options: existing RDC Presidency and Radio Okapi sources, SportsDataIO MMA API for combat events, and TMDB’s official upcoming/release-date APIs for cinema.
+- Defined the safety boundary: general news or buzz enters the game only when it contains a sourced, attributable, verifiable claim with a deadline; rumors and private-person accusations remain excluded.
+
+### Validation
+- Checked current provider documentation and public source availability through web search; no provider integration was executed.
+- No code, test, build, deployment, or Git command was run, so all implementation commands remain unverified.
+
+### Next
+Obtain user approval for the first implementation tranche and confirm whether TMDB and combat-sports API credentials can be supplied through Vercel environment variables.
+
+### Next steps
+1. Confirm production-real-only behavior while retaining fixtures exclusively under `VITE_DEMO=1`.
+2. Choose and configure the cinema and combat-sports providers without committing secrets.
+3. Implement one category at a time with source links, safety classification, cache handling, and tests.
+
+## Session — 2026-11-13 — Mobile PWA installation
+
+### Done
+- Added Android/Chromium install-prompt handling with `beforeinstallprompt`, user-choice feedback, installed-state detection, and `appinstalled` handling.
+- Added iPhone/iPad Add to Home Screen guidance and standalone detection in Settings, with French and English text.
+- Completed the web app manifest with explicit identity, scope, portrait standalone display, 192 px, 512 px, maskable, SVG, and Apple icon coverage.
+- Added mobile viewport safe-area metadata, Apple web-app metadata, and an Apple touch icon.
+- Added valid PNG app icons and improved the service worker with cache-first handling for immutable Vite assets while keeping API requests uncached.
+- Added a Vercel no-cache response policy for `/sw.js` so deployed clients can detect updates.
+
+### Validation
+- Verified all four generated PNG files by decoding them and confirming dimensions: 180×180, 192×192, and two 512×512 files.
+- Verified by source inspection that every manifest, HTML, and service-worker icon path points to an existing file, and that French/English installation keys are paired.
+- The icon-generation PowerShell process returned exit code `-1` after producing all four valid image files.
+- `npm.cmd test -- --run` completed successfully in the user’s PowerShell terminal: 21 test files passed and all 98 tests passed in 15.49 seconds.
+- `npm.cmd run build` completed successfully in the user’s PowerShell terminal: TypeScript and Vite passed, 79 modules were transformed, and the initial JavaScript measured 207,454 raw bytes / 66,957 gzipped bytes, below the 102,400-byte gzip limit.
+- No Git command was run.
+
+### Next
+Run the checks in a working terminal, deploy to HTTPS, then verify installation on Android Chrome and iOS Safari.
+
+### Next steps
+1. Review the working tree, then commit and push the verified PWA changes.
+2. Commit and push the PWA files, then confirm Vercel serves the new manifest, icons, and uncached service worker.
+3. On a real phone, install from Settings or the browser menu, launch from the home screen, and verify standalone display and offline reopening.

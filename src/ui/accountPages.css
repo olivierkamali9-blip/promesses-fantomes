@@ -238,3 +238,35 @@
   .account-page__stats { grid-template-columns: repeat(4, 1fr); }
   .stake-history__item { grid-template-columns: minmax(0, 1fr) auto; align-items: center; }
 }
+
+.settings-page__install {
+  display: grid;
+  gap: 0.75rem;
+  border-color: rgb(124 255 196 / 32%);
+  background:
+    radial-gradient(circle at 100% 0%, rgb(124 255 196 / 10%), transparent 11rem),
+    var(--color-surface);
+}
+
+.settings-page__install p {
+  margin: 0;
+  color: var(--color-muted);
+  font-size: 0.82rem;
+  line-height: 1.55;
+}
+
+.settings-page__install .settings-page__install-status {
+  color: var(--color-spectral);
+  font-weight: 700;
+}
+
+.settings-page__install .settings-page__install-help {
+  padding-left: 0.75rem;
+  border-left: 3px solid var(--color-ember);
+  color: var(--color-bone);
+}
+
+.settings-page__install button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
