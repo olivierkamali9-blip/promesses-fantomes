@@ -4,8 +4,8 @@
     {
       "name": "Garde-fou fictif",
       "trigger": "PostFileSave",
-      "description": "Vérifie que les données et sources enregistrées restent entièrement fictives.",
-      "matcher": "^(src[\\\\/]sources[\\\\/]fixtures\\.ts|src[\\\\/]data[\\\\/].*)$",
+      "description": "Vérifie que les fixtures et le seed Supabase restent entièrement fictifs.",
+      "matcher": "^(src[\\\\/]sources[\\\\/]fixtures\\.ts|src[\\\\/]data[\\\\/].*|supabase[\\\\/]seed\\.sql)$",
       "action": {
         "type": "agent",
         "prompt": "Review the saved file with this instruction: Every person, organisation and place must be FICTIONAL (examples: Ville-Exemple, FC Démo, AS Test, Ministre de l'Exemple). Flag any real person's name, any quote attributed to a real person, and any URL that is not example.org. If everything is fine, answer in one line: OK fictif. Otherwise list the lines to fix. Do not edit files and do not run commands."

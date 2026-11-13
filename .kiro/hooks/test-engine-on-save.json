@@ -1,0 +1,16 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Test engine on save",
+      "trigger": "PostFileSave",
+      "description": "Runs engine tests whenever pure domain code is saved.",
+      "matcher": "^src[\\\\/]engine[\\\\/].*\\.ts$",
+      "action": {
+        "type": "command",
+        "command": "npm.cmd test -- --run src/engine",
+        "timeout": 120
+      }
+    }
+  ]
+}

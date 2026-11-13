@@ -161,6 +161,7 @@ function App() {
         sourceMode={sourceMode}
         sourceRefreshAt={state.sourceRefreshAt ?? currentTime}
         isRefreshing={isGeneratingDrafts}
+        sourceError={state.sourceError}
       />
     )
   }

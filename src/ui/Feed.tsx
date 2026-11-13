@@ -14,6 +14,7 @@ type FeedProps = {
   sourceMode: AdapterMode
   sourceRefreshAt: number
   isRefreshing: boolean
+  sourceError: string | null
 }
 
 const FINAL_STATES: ReadonlySet<LifecycleState> = new Set([
@@ -44,6 +45,7 @@ export function Feed({
   sourceMode,
   sourceRefreshAt,
   isRefreshing,
+  sourceError,
 }: FeedProps) {
   const [activeTab, setActiveTab] = useState<FeedTab>('open')
   const [category, setCategory] = useState<CategoryFilter>('ALL')
@@ -51,7 +53,7 @@ export function Feed({
   const feedPledges = useMemo(() =>
     sourceMode === 'live'
       ? pledges.filter((pledge) => pledge.liveSource)
-      : pledges.filter((pledge) => !pledge.liveSource),
+      : pledges,
   [pledges, sourceMode])
   const visiblePledges = useMemo(() => {
     const tabPledges = feedPledges.filter((pledge) =>
@@ -107,6 +109,12 @@ export function Feed({
           }).format(sourceRefreshAt)}
         </time>
       </p>
+
+      {sourceError && (
+        <p className="feed__source-error" role="alert">
+          {sourceError}
+        </p>
+      )}
 
       <p className="feed__order-note">
         Les plus proches de leur échéance passent devant.

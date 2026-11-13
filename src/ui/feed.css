@@ -433,3 +433,14 @@
   font-size: 0.68rem;
   font-style: normal;
 }
+
+.feed__source-error {
+  margin: 0;
+  padding: 0.75rem;
+  border: 1px dashed rgb(255 138 76 / 45%);
+  border-radius: 0.75rem;
+  color: var(--color-bone);
+  background: rgb(255 138 76 / 8%);
+  font-size: 0.78rem;
+  line-height: 1.5;
+}

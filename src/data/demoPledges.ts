@@ -19,6 +19,7 @@ export type DemoPledge = {
   deadline: string
   state: LifecycleState
   evidenceLevel: EvidenceLevel
+  aiConfidence?: number
   tier: Exclude<SafetyTier, 'BLOCKED'>
   liveSource?: boolean
   liveKind?: 'UPCOMING' | 'REPLAY'

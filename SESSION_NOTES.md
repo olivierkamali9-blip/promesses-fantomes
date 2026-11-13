@@ -268,3 +268,23 @@ Deploy and inspect `aiProvider`; a successful request may still return zero cand
 1. Push the model compatibility fix.
 2. Verify the political endpoint no longer reports Gemini HTTP 404.
 3. Distinguish a successful empty analysis from source extraction failures before any further changes.
+
+## Session — 2026-11-13 — Remaining spec tasks
+
+### Done
+- Audited all 17 tasks against requirements and the playbook; updated task checkboxes so only external completion steps for tasks 16 and 17 remain open.
+- Completed task 6 repository deliverables with a Supabase schema, RLS policies, fictional seed, account trigger, strict resolution constraints, and an atomic authenticated stake RPC whose daily cap comes from the locked profile rather than caller input.
+- Added installable PWA assets and service-worker precaching for hashed Vite assets, with API requests excluded and navigation-only offline fallback.
+- Added a reproducible first-load JavaScript budget gate including modulepreload chunks and strict TypeScript checking for Vercel API entry points.
+- Added a production smoke-test checklist, an under-three-minute video script, KIRO_NOTES, and Devpost/blog/social submission drafts; rewrote README with architecture, safety, setup, demo, deployment, database, limits, and Kiro/Gemini role disclosure.
+- Added the missing Kiro hooks for engine tests on save, pre-commit secret review reminders, session-note handoff, and expanded the fictional-data guard to Supabase seed data.
+- Added a readable source-failure state that preserves cached real pledges, the exact bilingual fictional seed label, and an explicit confidence field that honestly says “Non évaluée” when no measured confidence exists.
+- Secret scans found no Gemini key or hard-coded credential. Test/build commands were attempted, but the local terminal bridge returned exit code `-1` without diagnostic output, so validation remains inconclusive until Vercel builds the commit.
+
+### Next
+Push the remaining-task commit, use Vercel as the authoritative build check, then complete the real-phone smoke test and external submission actions.
+
+### Next steps
+1. Push and confirm Vercel passes strict API TypeScript plus the 200 KB initial bundle gate.
+2. Complete SMOKE_TEST.md on a real phone and record the video from VIDEO_SCRIPT.md.
+3. Add the public video/Devpost URLs to SUBMISSION_DRAFT.md, publish the blog/social post, and submit in Costume Contest.

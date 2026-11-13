@@ -7,15 +7,18 @@ import { PoliticalHttpAdapter } from './politicalHttp'
 export type AdapterMode = 'live' | 'demo'
 export type RefreshAwareSourceAdapter = SourceAdapter & {
   readonly lastRefreshAt?: number | null
+  readonly lastWarning?: string | null
 }
 export type ModeAwareSourceAdapter = SourceAdapter & {
   readonly mode: AdapterMode
   readonly lastRefreshAt?: number | null
+  readonly lastWarning?: string | null
   readonly supportsLiveRefresh?: boolean
 }
 
 export class CombinedLiveAdapter implements SourceAdapter {
   readonly mode = 'live' as const
+  private warning: string | null = null
 
   constructor(private readonly adapters: readonly RefreshAwareSourceAdapter[]) {}
 
@@ -26,6 +29,10 @@ export class CombinedLiveAdapter implements SourceAdapter {
     return refreshes.length > 0 ? Math.max(...refreshes) : null
   }
 
+  get lastWarning(): string | null {
+    return this.warning
+  }
+
   async searchNews(query: string): Promise<Candidate[]> {
     const results = await Promise.allSettled(
       this.adapters.map((adapter) => adapter.searchNews(query)),
@@ -33,9 +40,17 @@ export class CombinedLiveAdapter implements SourceAdapter {
     const candidates = results.flatMap((result) =>
       result.status === 'fulfilled' ? result.value : [],
     )
+    const failures = results.flatMap((result) =>
+      result.status === 'rejected'
+        ? [result.reason instanceof Error ? result.reason.message : 'Source réelle indisponible']
+        : [],
+    )
+    this.warning = failures.length > 0
+      ? `Veille partielle : ${failures.join(' ')}`
+      : null
 
     if (candidates.length === 0) {
-      throw new Error('Aucune source réelle n’est disponible.')
+      throw new Error(this.warning ?? 'Aucune source réelle n’est disponible.')
     }
 
     return candidates.filter(
@@ -49,6 +64,7 @@ export class CombinedLiveAdapter implements SourceAdapter {
 
 class FallbackSourceAdapter implements ModeAwareSourceAdapter {
   private activeMode: AdapterMode = 'live'
+  private fallbackWarning: string | null = null
   readonly supportsLiveRefresh = true
 
   constructor(
@@ -65,13 +81,23 @@ class FallbackSourceAdapter implements ModeAwareSourceAdapter {
     return this.live.lastRefreshAt ?? null
   }
 
+  get lastWarning(): string | null {
+    return this.activeMode === 'live'
+      ? this.live.lastWarning ?? null
+      : this.fallbackWarning
+  }
+
   async searchNews(query: string) {
     try {
       const candidates = await this.live.searchNews(query)
       this.activeMode = 'live'
+      this.fallbackWarning = null
       return candidates
-    } catch {
+    } catch (error) {
       this.activeMode = 'demo'
+      this.fallbackWarning = error instanceof Error
+        ? error.message
+        : 'Sources en direct indisponibles.'
       return this.fallback.searchNews(query)
     }
   }
@@ -83,9 +109,7 @@ function environmentDemoMode(): boolean {
       readonly env?: Readonly<Record<string, string | undefined>>
     }
   ).env
-  const officialLiveHost = typeof window !== 'undefined' &&
-    window.location.hostname === 'promesses-fantomes.vercel.app'
-  return environment?.VITE_DEMO === '1' && !officialLiveHost
+  return environment?.VITE_DEMO === '1'
 }
 
 export function createAdapter(

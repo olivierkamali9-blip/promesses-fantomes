@@ -125,6 +125,7 @@ export type GameState = {
   decisionsLog: DecisionLogEntry[]
   tombstones: Tombstone[]
   sourceRefreshAt: number | null
+  sourceError: string | null
 }
 
 export type DraftEdits = Pick<Draft, 'question' | 'criteria' | 'deadline'>
@@ -168,8 +169,8 @@ export type GameAction =
       drafts: DraftQueueItem[]
       replays?: DemoPledge[]
       refreshedAt?: number
-      at: number
       error?: string
+      at: number
     }
   | { type: 'APPROVE_DRAFT'; draftId: string; at: number }
   | {
@@ -208,6 +209,7 @@ export function createInitialGameState(): GameState {
     decisionsLog: [],
     tombstones: [],
     sourceRefreshAt: Date.now(),
+    sourceError: null,
   }
 }
 
@@ -841,6 +843,7 @@ function handleGeneratedDrafts(
       pledges: [...published, ...importedReplays, ...state.pledges],
       resolutions: { ...state.resolutions, ...replayResolutions },
       sourceRefreshAt: action.refreshedAt ?? state.sourceRefreshAt,
+      sourceError: action.error ?? null,
     },
     'ai',
     action.type,
@@ -1087,10 +1090,10 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
 
 function isStoredGameState(value: unknown): value is Omit<
   GameState,
-  'draftsQueue' | 'decisionsLog' | 'tombstones' | 'sourceRefreshAt'
+  'draftsQueue' | 'decisionsLog' | 'tombstones' | 'sourceRefreshAt' | 'sourceError'
 > & Partial<Pick<
   GameState,
-  'draftsQueue' | 'decisionsLog' | 'tombstones' | 'sourceRefreshAt'
+  'draftsQueue' | 'decisionsLog' | 'tombstones' | 'sourceRefreshAt' | 'sourceError'
 >> {
   if (!value || typeof value !== 'object') {
     return false
@@ -1148,6 +1151,9 @@ function loadGameState(): GameState {
         Number.isFinite(parsed.sourceRefreshAt)
         ? parsed.sourceRefreshAt
         : Date.now(),
+      sourceError: typeof parsed.sourceError === 'string'
+        ? parsed.sourceError
+        : null,
     }
   } catch {
     return createInitialGameState()
@@ -1261,6 +1267,11 @@ export function useGame(dailyStakeCap = DEFAULT_DAILY_STAKE_CAP) {
         ...generated,
         refreshedAt,
         at: Date.now(),
+        error: sourceAdapter.lastWarning ?? (
+          sourceAdapter.mode === 'demo' && sourceAdapter.supportsLiveRefresh
+            ? 'Sources en direct indisponibles : affichage des promesses en cache et des scénarios de secours.'
+            : undefined
+        ),
       })
     } catch (error) {
       try {

@@ -1,0 +1,14 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Update session notes on stop",
+      "trigger": "Stop",
+      "description": "Keeps the durable session handoff current when an agent run ends.",
+      "action": {
+        "type": "agent",
+        "prompt": "Before finishing a development session, ensure SESSION_NOTES.md records what was done, what is next, three next steps, validation results, and any command that could not be verified. Do not claim tests passed unless they actually completed."
+      }
+    }
+  ]
+}

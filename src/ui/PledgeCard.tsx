@@ -41,7 +41,9 @@ export function PledgeCard({ pledge, state, now, href }: PledgeCardProps) {
               {pledge.realMatchLabel ?? (pledge.liveKind === 'UPCOMING' ? 'Match réel' : 'Résultat réel')}
             </span>
           ) : (
-            <span className="pledge-card__fictional">Scénario fictif</span>
+            <span className="pledge-card__fictional">
+              Scénario fictif · Fictional demo scenario
+            </span>
           )}
           <span
             className={`pledge-card__tier pledge-card__tier--${pledge.tier.toLowerCase()}`}

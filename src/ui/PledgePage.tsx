@@ -127,6 +127,7 @@ export function PledgePage({
   ) && !result
   const tier = TIER_DETAILS[pledge.tier]
   const verification = pledge.verification
+  const displayedConfidence = verification?.decision.confidence ?? pledge.aiConfidence
   const guardianReasonReady = guardianReason.trim().length > 0
   const noMoneyNotice = translate(locale, 'notice.noMoney')
   const dailyCapLabel = translate(locale, 'notice.dailyCap')
@@ -173,7 +174,7 @@ export function PledgePage({
           <div className="pledge-page__badges">
             <span>{pledge.liveSource
               ? pledge.realMatchLabel ?? (pledge.liveKind === 'UPCOMING' ? 'Match réel' : 'Résultat réel')
-              : 'Scénario fictif'}</span>
+              : 'Scénario fictif · Fictional demo scenario'}</span>
             <span>Risque : {tier.label}</span>
             {pledge.unconfirmed && <span>Non confirmé</span>}
           </div>
@@ -309,6 +310,11 @@ export function PledgePage({
 
           <div className="ai-belief__summary">
             <p><strong>Niveau de preuve :</strong> L{pledge.evidenceLevel}</p>
+            <p><strong>Confiance :</strong>{' '}
+              {displayedConfidence === undefined
+                ? 'Non évaluée'
+                : `${Math.round(displayedConfidence * 100)} %`}
+            </p>
             <p><strong>Risque {tier.label} :</strong> {tier.reason}</p>
           </div>
 
