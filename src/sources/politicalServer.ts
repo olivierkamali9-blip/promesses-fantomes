@@ -60,7 +60,11 @@ const SOURCES: readonly PoliticalSource[] = [
 ]
 
 const CACHE_TTL_MS = 10 * 60 * 1_000
-const GEMINI_MODEL = 'gemini-2.5-flash'
+const GEMINI_MODELS = [
+  'gemini-3.5-flash-lite',
+  'gemini-3.6-flash',
+  'gemini-3.8-flash',
+] as const
 let cached: { expiresAt: number; payload: PoliticalPayload } | null = null
 
 function isRecord(value: unknown): value is UnknownRecord {
@@ -294,49 +298,58 @@ async function geminiCandidates(
   const timeout = globalThis.setTimeout(() => controller.abort(), 15_000)
 
   try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`,
-      {
-        method: 'POST',
-        signal: controller.signal,
-        headers: {
-          'Content-Type': 'application/json',
-          'x-goog-api-key': apiKey,
-        },
-        body: JSON.stringify({
-          contents: [{ role: 'user', parts: [{ text: prompt }] }],
-          generationConfig: {
-            temperature: 0,
-            maxOutputTokens: 1_024,
-            responseMimeType: 'application/json',
-            responseSchema: {
-              type: 'OBJECT',
-              properties: {
-                items: {
-                  type: 'ARRAY',
-                  maxItems: 8,
-                  items: {
-                    type: 'OBJECT',
-                    properties: {
-                      sourceUrl: { type: 'STRING' },
-                      exactStatement: { type: 'STRING' },
-                    },
-                    required: ['sourceUrl', 'exactStatement'],
-                  },
+    const body = JSON.stringify({
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      generationConfig: {
+        temperature: 0,
+        maxOutputTokens: 1_024,
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: 'OBJECT',
+          properties: {
+            items: {
+              type: 'ARRAY',
+              maxItems: 8,
+              items: {
+                type: 'OBJECT',
+                properties: {
+                  sourceUrl: { type: 'STRING' },
+                  exactStatement: { type: 'STRING' },
                 },
+                required: ['sourceUrl', 'exactStatement'],
               },
-              required: ['items'],
             },
           },
-        }),
+          required: ['items'],
+        },
       },
-    )
-    if (!response.ok) throw new Error(`Gemini HTTP ${response.status}`)
-    const text = geminiText(await response.json())
-    if (!text) throw new Error('Réponse Gemini vide.')
-    const candidates = candidatesFromGeminiJson(text, articles, now)
-    if (candidates === null) throw new Error('Réponse Gemini invalide.')
-    return candidates
+    })
+    let lastStatus = 404
+
+    for (const model of GEMINI_MODELS) {
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+        {
+          method: 'POST',
+          signal: controller.signal,
+          headers: {
+            'Content-Type': 'application/json',
+            'x-goog-api-key': apiKey,
+          },
+          body,
+        },
+      )
+      lastStatus = response.status
+      if (response.status === 404) continue
+      if (!response.ok) throw new Error(`Gemini HTTP ${response.status}`)
+      const text = geminiText(await response.json())
+      if (!text) throw new Error('Réponse Gemini vide.')
+      const candidates = candidatesFromGeminiJson(text, articles, now)
+      if (candidates === null) throw new Error('Réponse Gemini invalide.')
+      return candidates
+    }
+
+    throw new Error(`Gemini HTTP ${lastStatus} pour les modèles Flash disponibles`)
   } finally {
     globalThis.clearTimeout(timeout)
   }

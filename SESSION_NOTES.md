@@ -254,3 +254,17 @@ Deploy the diagnostic and inspect the exact Gemini HTTP/result error before chan
 1. Push the sanitized diagnostic.
 2. Query `/api/political` after deployment.
 3. Apply one targeted fix from the reported status without weakening source validation.
+
+## Session — 2026-11-13 — Gemini model compatibility
+
+### Done
+- Production diagnostic confirmed `GEMINI_API_KEY` is present but `gemini-2.5-flash` returns HTTP 404.
+- Replaced the retired model with an ordered compatibility list of current Flash models: 3.5 Flash-Lite, 3.6 Flash, then 3.8 Flash; fallback advances only on HTTP 404 and preserves all validation and quota controls.
+
+### Next
+Deploy and inspect `aiProvider`; a successful request may still return zero candidates when no sourced statement satisfies the strict promise criteria.
+
+### Next steps
+1. Push the model compatibility fix.
+2. Verify the political endpoint no longer reports Gemini HTTP 404.
+3. Distinguish a successful empty analysis from source extraction failures before any further changes.
