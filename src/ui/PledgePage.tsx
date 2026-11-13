@@ -152,7 +152,7 @@ export function PledgePage({
         <GhostFigure state={state} evidenceLevel={pledge.evidenceLevel} />
         <div>
           <div className="pledge-page__badges">
-            <span>Scénario fictif</span>
+            <span>{pledge.liveSource ? 'Résultat réel' : 'Scénario fictif'}</span>
             <span>Risque : {tier.label}</span>
           </div>
           <h2 id="pledge-page-title">{pledge.question}</h2>

@@ -37,6 +37,7 @@ function App() {
   const [hash, setHash] = useState(() => window.location.hash)
   const {
     state,
+    sourceMode,
     isGeneratingDrafts,
     verifyingPledgeIds,
     stake,
@@ -153,6 +154,7 @@ function App() {
           <ApprovalQueue
             drafts={state.draftsQueue}
             decisions={state.decisionsLog}
+            sourceMode={sourceMode}
             isGenerating={isGeneratingDrafts}
             onGenerate={generateDrafts}
             onApprove={approveDraft}

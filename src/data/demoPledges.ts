@@ -17,6 +17,7 @@ export type DemoPledge = {
   state: LifecycleState
   evidenceLevel: EvidenceLevel
   tier: Exclude<SafetyTier, 'BLOCKED'>
+  liveSource?: boolean
   unconfirmed?: boolean
   stakes: Readonly<Record<Side, number>>
   sources: readonly DemoSource[]

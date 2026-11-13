@@ -13,7 +13,13 @@ import { applyEvent, resolvePledge, type FinalState } from '../engine/lifecycle'
 import { mergeTier, type SafetyTier } from '../engine/safety'
 import { validateStake } from '../engine/stake'
 import { settlePledge, type Side, type Stake } from '../engine/souls'
-import { FixtureAdapter } from '../sources/adapter'
+import { draftLiveFootball, isLiveFootballCandidate } from '../sources/footballLive'
+import {
+  createAdapter,
+  FixtureAdapter,
+  type AdapterMode,
+  type ModeAwareSourceAdapter,
+} from '../sources'
 
 const STORAGE_KEY = 'promesses-fantomes-demo-game'
 const PLAYER_ID = 'demo-player'
@@ -67,6 +73,7 @@ export type DraftQueueItem = {
   draft: Draft
   decision: GuardianDecision
   createdAt: number
+  sourceMode?: AdapterMode
 }
 
 export type DecisionAction =
@@ -505,22 +512,58 @@ function stableDraftId(sourceUrl: string): string {
   return `draft-${(hash >>> 0).toString(36)}`
 }
 
-export async function generateFixtureDrafts(): Promise<DraftQueueItem[]> {
-  const candidates = await scout(new FixtureAdapter(), '')
+export async function generateDraftsFromAdapter(
+  adapter: ModeAwareSourceAdapter,
+): Promise<DraftQueueItem[]> {
+  const candidates = await scout(adapter, '')
   const llm = new FixtureLlm()
-
-  return Promise.all(
+  const createdAt = Date.now()
+  const items = await Promise.all(
     candidates.map(async (candidate) => {
-      const draft = await draftPledge(llm, candidate)
+      const live = isLiveFootballCandidate(candidate)
+      const draft = live
+        ? draftLiveFootball(candidate)
+        : await draftPledge(llm, candidate)
+      const decision = decide(draft)
+
       return {
-        id: stableDraftId(candidate.sourceUrl),
+        id: stableDraftId(
+          live
+            ? `${candidate.title}|${candidate.publishedAt}`
+            : candidate.sourceUrl,
+        ),
         candidate,
         draft,
-        decision: decide(draft),
-        createdAt: Date.now(),
+        decision,
+        createdAt,
+        sourceMode: live ? 'live' as const : 'demo' as const,
       }
     }),
   )
+
+  return items.filter(
+    (item) =>
+      item.sourceMode !== 'live' ||
+      item.decision.tier === 'GREEN' ||
+      item.decision.tier === 'ORANGE',
+  )
+}
+
+export function generateFixtureDrafts(): Promise<DraftQueueItem[]> {
+  return generateDraftsFromAdapter(new FixtureAdapter())
+}
+
+function sourceLabel(item: DraftQueueItem, independentGroup: string, index: number): string {
+  if (item.sourceMode !== 'live') {
+    return `Source fictive ${index + 1}`
+  }
+  if (independentGroup === 'football-data') {
+    return 'football-data.org'
+  }
+  if (independentGroup === 'openfootball') {
+    return 'openfootball'
+  }
+  return `Source en direct ${index + 1}`
 }
 
 function draftToPledge(item: DraftQueueItem): DemoPledge | null {
@@ -537,11 +580,12 @@ function draftToPledge(item: DraftQueueItem): DemoPledge | null {
     state: applyEvent('MURMUR', { type: 'APPROVE' }),
     evidenceLevel: evidenceLevel(item.draft.sources),
     tier: decision.tier,
+    liveSource: item.sourceMode === 'live',
     unconfirmed: decision.tier === 'ORANGE',
     stakes: { KEPT: 0, BROKEN: 0 },
     sources: item.draft.sources.map((source, index) => ({
       ...source,
-      label: `Source fictive ${index + 1}`,
+      label: sourceLabel(item, source.independentGroup, index),
     })),
   }
 }
@@ -910,6 +954,8 @@ function loadGameState(): GameState {
 
 export function useGame() {
   const [state, dispatch] = useReducer(gameReducer, undefined, loadGameState)
+  const [sourceAdapter] = useState<ModeAwareSourceAdapter>(() => createAdapter())
+  const [sourceMode, setSourceMode] = useState<AdapterMode>(sourceAdapter.mode)
   const [isGeneratingDrafts, setIsGeneratingDrafts] = useState(false)
   const [verifyingPledgeIds, setVerifyingPledgeIds] = useState<readonly string[]>(
     [],
@@ -997,9 +1043,11 @@ export function useGame() {
 
     setIsGeneratingDrafts(true)
     try {
-      const drafts = await generateFixtureDrafts()
+      const drafts = await generateDraftsFromAdapter(sourceAdapter)
+      setSourceMode(sourceAdapter.mode)
       dispatch({ type: 'GENERATE_DRAFTS', drafts, at: Date.now() })
     } catch (error) {
+      setSourceMode(sourceAdapter.mode)
       dispatch({
         type: 'GENERATE_DRAFTS',
         drafts: [],
@@ -1009,7 +1057,7 @@ export function useGame() {
     } finally {
       setIsGeneratingDrafts(false)
     }
-  }, [isGeneratingDrafts])
+  }, [isGeneratingDrafts, sourceAdapter])
 
   const approveDraft = useCallback((draftId: string) => {
     dispatch({ type: 'APPROVE_DRAFT', draftId, at: Date.now() })
@@ -1029,6 +1077,7 @@ export function useGame() {
 
   return {
     state,
+    sourceMode,
     isGeneratingDrafts,
     verifyingPledgeIds,
     stake,

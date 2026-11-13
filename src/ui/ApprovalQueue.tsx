@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { evidenceLevel } from '../engine/evidence'
 import type { SafetyTier } from '../engine/safety'
+import type { AdapterMode } from '../sources'
 import type {
   DecisionAction,
   DecisionLogEntry,
@@ -34,6 +35,7 @@ type DraftEditor = DraftEdits & {
 type ApprovalQueueProps = {
   drafts: readonly DraftQueueItem[]
   decisions: readonly DecisionLogEntry[]
+  sourceMode: AdapterMode
   isGenerating: boolean
   onGenerate: () => Promise<void>
   onApprove: (draftId: string) => void
@@ -59,6 +61,7 @@ function deadlineFromInput(value: string): string {
 export function ApprovalQueue({
   drafts,
   decisions,
+  sourceMode,
   isGenerating,
   onGenerate,
   onApprove,
@@ -115,7 +118,11 @@ export function ApprovalQueue({
       </div>
 
       <div className="approval-queue__generator">
-        <strong>Brouillons générés à partir de sources fictives</strong>
+        <strong>
+          {sourceMode === 'live'
+            ? 'Brouillons générés à partir de sources en direct : football-data.org et openfootball'
+            : 'Brouillons générés à partir de sources fictives'}
+        </strong>
         <button
           type="button"
           disabled={isGenerating}
@@ -123,7 +130,9 @@ export function ApprovalQueue({
         >
           {isGenerating
             ? 'Génération en cours…'
-            : 'Générer des brouillons (démo)'}
+            : sourceMode === 'live'
+              ? 'Générer des brouillons en direct'
+              : 'Générer des brouillons (démo)'}
         </button>
       </div>
 
@@ -179,7 +188,11 @@ export function ApprovalQueue({
                   </dl>
 
                   <div className="approval-card__sources">
-                    <h5>Sources fictives</h5>
+                    <h5>
+                      {item.sourceMode === 'live'
+                        ? 'Sources en direct'
+                        : 'Sources fictives'}
+                    </h5>
                     <ul>
                       {item.draft.sources.map((source, index) => (
                         <li key={`${source.url}-${index}`}>

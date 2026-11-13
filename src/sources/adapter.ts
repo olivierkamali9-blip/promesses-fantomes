@@ -6,6 +6,8 @@ export interface SourceAdapter {
 }
 
 export class FixtureAdapter implements SourceAdapter {
+  readonly mode = 'demo' as const
+
   constructor(private readonly candidates: readonly Candidate[] = FIXTURE_NEWS) {}
 
   searchNews(query: string): Promise<Candidate[]> {

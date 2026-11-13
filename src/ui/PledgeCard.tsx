@@ -36,7 +36,11 @@ export function PledgeCard({ pledge, state, now, href }: PledgeCardProps) {
     <a className="pledge-card-link" href={href} aria-labelledby={titleId}>
       <article className="pledge-card">
         <div className="pledge-card__badges">
-          <span className="pledge-card__fictional">Scénario fictif</span>
+          {pledge.liveSource ? (
+            <span className="pledge-card__real">Résultat réel</span>
+          ) : (
+            <span className="pledge-card__fictional">Scénario fictif</span>
+          )}
           <span
             className={`pledge-card__tier pledge-card__tier--${pledge.tier.toLowerCase()}`}
           >

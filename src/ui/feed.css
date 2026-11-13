@@ -154,6 +154,7 @@
 }
 
 .pledge-card__fictional,
+.pledge-card__real,
 .pledge-card__tier,
 .pledge-card__unconfirmed {
   display: inline-flex;
@@ -172,6 +173,12 @@
   border: 1px solid rgb(124 255 196 / 45%);
   color: var(--color-spectral);
   background: rgb(124 255 196 / 8%);
+}
+
+.pledge-card__real {
+  border: 1px solid rgb(255 138 76 / 50%);
+  color: var(--color-ember);
+  background: rgb(255 138 76 / 9%);
 }
 
 .pledge-card__unconfirmed {

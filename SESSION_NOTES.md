@@ -68,3 +68,23 @@ Have the GitHub helper run the full test and production build checks.
 1. Run the Vitest suite with a non-watch command.
 2. Run the TypeScript/Vite production build.
 3. Commit task 13 after those checks pass.
+
+## Session — 2026-11-13 — Task 14
+
+### Done
+- Added defensive pure football normalizers, normalized team matching, independent result confirmation, and conflict-safe evidence handling.
+- Added the thin Web-standard Vercel route backed by server-only token access, two upstream football sources, French partial-failure warnings, and a five-minute in-memory cache.
+- Added the six-second HTTP SourceAdapter and live-to-demo adapter fallback; `VITE_DEMO=1` remains fully fixture-only.
+- Connected live football drafts to the Guardian flow with GREEN/ORANGE enforcement, dynamic source-mode labels, provider labels, and the `Résultat réel` badge.
+- Restricted the unchanged `Garde-fou fictif` instruction to `src/sources/fixtures.ts` and `src/data/**`.
+- Added inline normalizer examples and fast-check properties for team-name symmetry, missing evidence, score conflicts, and evidence levels below L3 on conflict.
+- Added the server-only `FOOTBALL_DATA_TOKEN` placeholder to `.env.example`; no secret is read by browser code.
+- Did not run tests, build, network calls, or Git commands, as explicitly requested.
+
+### Next
+Have the GitHub helper run the full Vitest and production build checks.
+
+### Next steps
+1. Run the Vitest suite in non-watch mode.
+2. Run the TypeScript/Vite production build.
+3. Commit task 14 after those checks pass.
