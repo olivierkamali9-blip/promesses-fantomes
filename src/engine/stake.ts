@@ -1,3 +1,4 @@
+import type { LifecycleState } from './lifecycle'
 import type { Stake } from './souls'
 
 export type StakeValidation =
@@ -45,6 +46,16 @@ function staysWithinDailyStakeCap(
     stakedToday >= 0 &&
     dailyCap >= MINIMUM_STAKE &&
     stakedToday + amount <= dailyCap
+}
+
+export function isStakeWindowOpen(
+  state: LifecycleState,
+  deadline: string,
+  at: number,
+): boolean {
+  const deadlineTime = Date.parse(deadline)
+  return (state === 'APPARITION' || state === 'HAUNTING') &&
+    Number.isFinite(deadlineTime) && at < deadlineTime
 }
 
 export function validateStake(

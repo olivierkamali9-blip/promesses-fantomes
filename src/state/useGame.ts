@@ -13,6 +13,7 @@ import { applyEvent, resolvePledge, type FinalState } from '../engine/lifecycle'
 import { mergeTier, type SafetyTier } from '../engine/safety'
 import {
   DEFAULT_DAILY_STAKE_CAP,
+  isStakeWindowOpen,
   totalStakedOnDay,
   validateStake,
 } from '../engine/stake'
@@ -22,6 +23,11 @@ import {
   isLiveFootballCandidate,
   type LiveFootballCandidate,
 } from '../sources/footballLive'
+import {
+  draftPoliticalStatement,
+  isPoliticalCandidate,
+  type PoliticalCandidate,
+} from '../sources/politicalLive'
 import {
   createAdapter,
   FixtureAdapter,
@@ -239,8 +245,12 @@ function fictionalName(index: number): string {
   return FICTIONAL_NAMES[index % FICTIONAL_NAMES.length]
 }
 
-function isOpenForStake(pledge: DemoPledge): boolean {
+function isUnresolvedPledge(pledge: DemoPledge): boolean {
   return pledge.state === 'APPARITION' || pledge.state === 'HAUNTING'
+}
+
+function isOpenForStake(pledge: DemoPledge, at = Date.now()): boolean {
+  return isStakeWindowOpen(pledge.state, pledge.deadline, at)
 }
 
 function sourcesFor(pledge: DemoPledge) {
@@ -288,7 +298,7 @@ function settleResolution(
   resolvedBy: SimulationResult['resolvedBy'],
   reason: string,
 ): GameState {
-  if (!isOpenForStake(pledge) || state.resolutions[pledge.id]) {
+  if (!isUnresolvedPledge(pledge) || state.resolutions[pledge.id]) {
     return state
   }
 
@@ -355,7 +365,7 @@ function handleVerifierChecks(
   checks: VerifierCheck[],
   at: number,
 ): GameState {
-  if (!isOpenForStake(pledge) || state.resolutions[pledge.id]) {
+  if (!isUnresolvedPledge(pledge) || state.resolutions[pledge.id]) {
     return state
   }
 
@@ -538,6 +548,16 @@ async function draftRealMatch(candidate: LiveFootballCandidate): Promise<Draft> 
   )
 }
 
+async function draftPoliticalCandidate(
+  candidate: PoliticalCandidate,
+): Promise<Draft> {
+  const template = draftPoliticalStatement(candidate)
+  return draftPledge(
+    { complete: () => Promise.resolve(JSON.stringify(template)) },
+    candidate,
+  )
+}
+
 export async function generateSourceImport(
   adapter: ModeAwareSourceAdapter,
 ): Promise<GeneratedSourceImport> {
@@ -551,41 +571,60 @@ export async function generateSourceImport(
     .map(replayCandidateToPledge)
     .filter((pledge): pledge is DemoPledge => pledge !== null)
   const regularCandidates = candidates.filter(
-    (candidate) => !isLiveFootballCandidate(candidate),
+    (candidate) =>
+      !isLiveFootballCandidate(candidate) && !isPoliticalCandidate(candidate),
   )
+  const politicalCandidates = candidates
+    .filter(isPoliticalCandidate)
+    .slice(0, 8)
   const upcomingCandidates = candidates
     .filter(isLiveFootballCandidate)
     .filter((candidate) => candidate.phase === 'UPCOMING')
     .slice(0, 6)
-  const draftCandidates = [...regularCandidates, ...upcomingCandidates]
+  const draftCandidates = [
+    ...regularCandidates,
+    ...upcomingCandidates,
+    ...politicalCandidates,
+  ]
   const items = await Promise.all(
     draftCandidates.map(async (candidate) => {
-      const live = isLiveFootballCandidate(candidate)
-      const draft = live
+      const football = isLiveFootballCandidate(candidate)
+      const political = isPoliticalCandidate(candidate)
+      const draft = football
         ? await draftRealMatch(candidate)
-        : await draftPledge(llm, candidate)
+        : political
+          ? await draftPoliticalCandidate(candidate)
+          : await draftPledge(llm, candidate)
       const decision = decide(draft)
+      const real = football || political
 
       return {
         id: stableDraftId(
-          live
-            ? `${candidate.title}|${candidate.publishedAt}`
-            : candidate.sourceUrl,
+          political
+            ? `${candidate.sourceUrl}|${candidate.exactStatement}`
+            : football
+              ? `${candidate.title}|${candidate.publishedAt}|${candidate.sourceUrl}`
+              : candidate.sourceUrl,
         ),
         candidate,
         draft,
         decision,
         createdAt,
-        sourceMode: live ? 'live' as const : 'demo' as const,
+        sourceMode: real ? 'live' as const : 'demo' as const,
       }
     }),
   )
 
   return {
-    drafts: items.filter(
-      (item) => item.sourceMode !== 'live' ||
-        (item.decision.action === 'PUBLISH' && item.decision.tier === 'GREEN'),
-    ),
+    drafts: items.filter((item) => {
+      if (isLiveFootballCandidate(item.candidate)) {
+        return item.decision.action === 'PUBLISH' && item.decision.tier === 'GREEN'
+      }
+      if (isPoliticalCandidate(item.candidate)) {
+        return true
+      }
+      return true
+    }),
     replays,
   }
 }
@@ -609,6 +648,15 @@ function sourceLabel(item: DraftQueueItem, independentGroup: string, index: numb
   }
   if (independentGroup === 'openfootball') {
     return 'openfootball'
+  }
+  if (independentGroup === 'presidence-rdc') {
+    return 'Présidence RDC'
+  }
+  if (independentGroup === 'gouvernement-rdc') {
+    return 'Communication du Gouvernement RDC'
+  }
+  if (independentGroup === 'radio-okapi') {
+    return 'Radio Okapi'
   }
   return `Source en direct ${index + 1}`
 }
@@ -659,13 +707,16 @@ export function replayCandidateToPledge(
 
 function draftToPledge(item: DraftQueueItem): DemoPledge | null {
   const decision = decide(item.draft)
+  const political = isPoliticalCandidate(item.candidate)
   if (decision.action === 'REJECT' || decision.tier === 'BLOCKED') {
     return null
   }
 
   return {
     id: item.id,
-    category: item.sourceMode === 'live' ? 'SPORT' : 'WORLD',
+    category: political
+      ? 'POLITICS'
+      : item.sourceMode === 'live' ? 'SPORT' : 'WORLD',
     question: item.draft.question,
     criteria: item.draft.criteria,
     deadline: item.draft.deadline,
@@ -673,8 +724,12 @@ function draftToPledge(item: DraftQueueItem): DemoPledge | null {
     evidenceLevel: evidenceLevel(item.draft.sources),
     tier: decision.tier,
     liveSource: item.sourceMode === 'live',
-    liveKind: item.sourceMode === 'live' ? 'UPCOMING' : undefined,
-    realMatchLabel: item.sourceMode === 'live' ? 'Match réel' : undefined,
+    liveKind: item.sourceMode === 'live' && !political ? 'UPCOMING' : undefined,
+    realMatchLabel: item.sourceMode === 'live'
+      ? political ? 'Déclaration réelle' : 'Match réel'
+      : undefined,
+    publicStatement: political ? item.candidate.exactStatement : undefined,
+    speaker: political ? item.candidate.speaker : undefined,
     unconfirmed: decision.tier === 'ORANGE',
     stakes: { KEPT: 0, BROKEN: 0 },
     sources: item.draft.sources.map((source, index) => ({
@@ -732,7 +787,7 @@ function handleGeneratedDrafts(
     (item) =>
       item.decision.action === 'QUEUE_APPROVAL' &&
       item.decision.tier !== 'BLOCKED' &&
-      item.sourceMode !== 'live' &&
+      (item.sourceMode !== 'live' || isPoliticalCandidate(item.candidate)) &&
       !existingQueueIds.has(item.id) &&
       !existingPledgeIds.has(item.id),
   )
@@ -741,7 +796,11 @@ function handleGeneratedDrafts(
       (item) =>
         item.decision.action === 'PUBLISH' &&
         item.decision.tier !== 'BLOCKED' &&
-        (item.sourceMode !== 'live' || item.decision.tier === 'GREEN') &&
+        (
+          item.sourceMode !== 'live' ||
+          (isLiveFootballCandidate(item.candidate) && item.decision.tier === 'GREEN') ||
+          (isPoliticalCandidate(item.candidate) && item.decision.tier === 'ORANGE')
+        ) &&
         !existingPledgeIds.has(item.id),
     )
     .map(draftToPledge)
@@ -980,7 +1039,7 @@ export function gameReducer(state: GameState, action: GameAction): GameState {
   }
 
   if (
-    !isOpenForStake(pledge) ||
+    !isOpenForStake(pledge, action.at) ||
     state.resolutions[pledge.id] ||
     !validateStake(
       state.player.souls,
@@ -1230,6 +1289,12 @@ export function useGame(dailyStakeCap = DEFAULT_DAILY_STAKE_CAP) {
     if (autoLoadStarted.current || sourceAdapter.mode !== 'live') return
     autoLoadStarted.current = true
     void generateDrafts()
+  }, [generateDrafts, sourceAdapter])
+
+  useEffect(() => {
+    if (!sourceAdapter.supportsLiveRefresh) return
+    const timer = window.setInterval(() => void generateDrafts(), 10 * 60 * 1_000)
+    return () => window.clearInterval(timer)
   }, [generateDrafts, sourceAdapter])
 
   const approveDraft = useCallback((draftId: string) => {

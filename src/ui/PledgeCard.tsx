@@ -53,6 +53,13 @@ export function PledgeCard({ pledge, state, now, href }: PledgeCardProps) {
           )}
         </div>
 
+        {pledge.publicStatement && (
+          <blockquote className="pledge-card__statement">
+            <p>{pledge.publicStatement}</p>
+            {pledge.speaker && <cite>Déclaration rapportée par la source · Sujet : {pledge.speaker}</cite>}
+          </blockquote>
+        )}
+
         <div className="pledge-card__summary">
           <GhostFigure
             state={state}

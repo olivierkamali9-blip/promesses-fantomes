@@ -49,7 +49,9 @@ export function Feed({
   const visiblePledges = useMemo(() => {
     const tabPledges = pledges.filter((pledge) =>
       pledge.liveKind !== 'REPLAY' &&
-      (activeTab === 'resolved' ? isResolved(pledge) : isPublished(pledge)),
+      (activeTab === 'resolved'
+        ? isResolved(pledge)
+        : isPublished(pledge)),
     )
 
     return filterByCategory(tabPledges, category)
@@ -88,7 +90,7 @@ export function Feed({
       </div>
 
       <p className="feed__source-status">
-        Sources : {sourceMode === 'live' ? 'en direct' : 'démo'} · dernière actualisation{' '}
+        Sources : {sourceMode === 'live' ? 'en direct · veille automatique (10 min)' : 'démo'} · dernière actualisation{' '}
         <time dateTime={new Date(sourceRefreshAt).toISOString()}>
           {new Intl.DateTimeFormat('fr', {
             hour: '2-digit',

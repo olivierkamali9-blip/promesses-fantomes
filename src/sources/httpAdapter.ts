@@ -186,7 +186,7 @@ export class HttpAdapter implements SourceAdapter {
     }
 
     const payload = responsePayload(await response.json())
-    if (payload.warnings.length > 0) {
+    if (payload.matches.length === 0 && payload.warnings.length > 0) {
       throw new Error(payload.warnings.join(' '))
     }
     return payload
@@ -208,7 +208,16 @@ export class HttpAdapter implements SourceAdapter {
               this.fetchMode(upcomingSeason, 'upcoming', controller.signal),
               this.fetchMode(this.replaySeason, 'results', controller.signal),
             ]
-      const payloads = await Promise.all(requests)
+      const results = await Promise.allSettled(requests)
+      const payloads = results.flatMap((result) =>
+        result.status === 'fulfilled' ? [result.value] : [],
+      )
+      if (payloads.length === 0) {
+        const failure = results.find((result) => result.status === 'rejected')
+        throw failure && failure.status === 'rejected'
+          ? failure.reason
+          : new Error('Les modes football sont indisponibles.')
+      }
       const candidates = selectLiveFootballCandidates(
         payloads.flatMap((payload) =>
           footballMatchesToCandidates(payload.matches),
@@ -245,10 +254,11 @@ export class HttpAdapter implements SourceAdapter {
   }
 
   searchNews(query: string): Promise<Candidate[]> {
-    this.sessionLoad ??= this.loadCandidates()
+    const load = this.sessionLoad ?? this.loadCandidates()
+    this.sessionLoad = load
     const normalizedQuery = query.trim().toLocaleLowerCase('fr')
 
-    return this.sessionLoad.then((candidates) =>
+    return load.then((candidates) =>
       normalizedQuery.length === 0
         ? candidates.map((candidate) => ({ ...candidate }))
         : candidates
@@ -258,6 +268,8 @@ export class HttpAdapter implements SourceAdapter {
                 .includes(normalizedQuery),
             )
             .map((candidate) => ({ ...candidate })),
-    )
+    ).finally(() => {
+      if (this.sessionLoad === load) this.sessionLoad = null
+    })
   }
 }

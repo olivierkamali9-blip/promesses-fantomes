@@ -120,7 +120,7 @@ export function ApprovalQueue({
       <div className="approval-queue__generator">
         <strong>
           {sourceMode === 'live'
-            ? 'Brouillons générés à partir de sources en direct : football-data.org et openfootball'
+            ? 'Brouillons générés à partir de sources en direct : football-data.org, OpenFootball, Présidence RDC, Gouvernement RDC et Radio Okapi'
             : 'Brouillons générés à partir de sources fictives'}
         </strong>
         <button

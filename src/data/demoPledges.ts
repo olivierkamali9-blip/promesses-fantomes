@@ -23,6 +23,8 @@ export type DemoPledge = {
   liveSource?: boolean
   liveKind?: 'UPCOMING' | 'REPLAY'
   realMatchLabel?: string
+  publicStatement?: string
+  speaker?: string
   unconfirmed?: boolean
   stakes: Readonly<Record<Side, number>>
   sources: readonly DemoSource[]

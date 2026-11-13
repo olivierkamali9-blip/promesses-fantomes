@@ -2,7 +2,7 @@ import { useState, type CSSProperties, type FormEvent } from 'react'
 import type { DemoPledge } from '../data/demoPledges'
 import type { FinalState, LifecycleState } from '../engine/lifecycle'
 import { timeState } from '../engine/lifecycle'
-import { validateStake, type StakeValidation } from '../engine/stake'
+import { isStakeWindowOpen, validateStake, type StakeValidation } from '../engine/stake'
 import { poolPercentages, type Side } from '../engine/souls'
 import { translate, type Locale } from '../i18n'
 import type { Player, SimulationResult } from '../state/useGame'
@@ -120,7 +120,11 @@ export function PledgePage({
     dailyStakeCap,
   )
   const open = state === 'APPARITION' || state === 'HAUNTING'
-  const canStake = open && !result
+  const canStake = isStakeWindowOpen(
+    pledge.state,
+    pledge.deadline,
+    now.getTime(),
+  ) && !result
   const tier = TIER_DETAILS[pledge.tier]
   const verification = pledge.verification
   const guardianReasonReady = guardianReason.trim().length > 0
@@ -171,11 +175,18 @@ export function PledgePage({
               ? pledge.realMatchLabel ?? (pledge.liveKind === 'UPCOMING' ? 'Match réel' : 'Résultat réel')
               : 'Scénario fictif'}</span>
             <span>Risque : {tier.label}</span>
+            {pledge.unconfirmed && <span>Non confirmé</span>}
           </div>
           <h2 id="pledge-page-title">{pledge.question}</h2>
           <p className="pledge-page__criteria">
             <strong>Critère vérifiable :</strong> {pledge.criteria}
           </p>
+          {pledge.publicStatement && (
+            <blockquote className="pledge-page__statement">
+              <p>{pledge.publicStatement}</p>
+              {pledge.speaker && <cite>Déclaration rapportée par la source · Sujet : {pledge.speaker}</cite>}
+            </blockquote>
+          )}
           <time className="pledge-page__countdown" dateTime={pledge.deadline}>
             {countdown === 'Échéance atteinte'
               ? countdown

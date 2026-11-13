@@ -1,7 +1,9 @@
 import * as ts from 'typescript'
 import { describe, expect, it } from 'vitest'
 import apiSource from '../../api/fixtures.ts?raw'
+import politicalApiSource from '../../api/political.ts?raw'
 import serverSource from './footballServer.ts?raw'
+import politicalServerSource from './politicalServer.ts?raw'
 
 function runtimeRelativeImports(source: string, fileName: string): string[] {
   const imports: string[] = []
@@ -40,7 +42,9 @@ function runtimeRelativeImports(source: string, fileName: string): string[] {
 describe('Node ESM runtime imports', () => {
   it.each([
     ['api/fixtures.ts', apiSource],
+    ['api/political.ts', politicalApiSource],
     ['src/sources/footballServer.ts', serverSource],
+    ['src/sources/politicalServer.ts', politicalServerSource],
   ])('%s uses .js on every runtime relative import', (fileName, source) => {
     const imports = runtimeRelativeImports(source, fileName)
     expect(imports.length).toBeGreaterThan(0)

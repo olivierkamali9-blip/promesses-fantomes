@@ -123,3 +123,22 @@ Have the GitHub helper run the full suite and production deployment checks, espe
 1. Run Vitest in non-watch mode and fix any static or property-test failure.
 2. Run the production build and invoke `/api/fixtures` for both upcoming and results modes with a server-side token.
 3. Verify cache reuse/expiry, six upcoming cards, three L3 replays, fallback mode, source timestamp, and real-match labels before committing.
+
+## Session — 2026-11-13 — Autonomous political monitoring
+
+### Done
+- Added an automatic real-source monitor for the DRC Presidency, DRC Government Communications, and Radio Okapi through a server-only Vercel route with fixed allowlisted hosts, redirect blocking, timeouts, response-size limits, and ten-minute server/browser caches.
+- Added pure political statement extraction and drafting: only attributable statements with explicit future deadlines are accepted; the exact sourced excerpt is preserved, ORANGE items publish as unconfirmed, RED items enter the Guardian queue, and BLOCKED decisions remain visible in the decision log.
+- Combined political and football live sources so one provider failure no longer hides successful real data; the live adapter retries after temporary failures and refreshes automatically every ten minutes while explicit demo mode makes no network call.
+- Fixed football partial-source behavior so OpenFootball matches can remain visible without a football-data.org token when usable data exists.
+- Added real-statement badges and excerpts to cards/details, updated visible source disclosures, and closed staking at the deadline while keeping expired pledges visible for evidence follow-up.
+- Added tests for partial football availability, live-source composition/recovery, explicit no-network demo mode, exact political statement preservation, ORANGE routing, and stake-window closure.
+- No command, build, test runner, deployment, or Git operation was run in this session.
+
+### Next
+Deploy through Vercel, leave `VITE_DEMO` unset or set to `0`, and verify that the live endpoints can reach the three allowlisted political sources from the deployment region.
+
+### Next steps
+1. Run the full Vitest suite and production TypeScript/Vite build.
+2. Call `/api/fixtures` and `/api/political` on the deployed host, then confirm `Sources : en direct` and inspect the Guardian queue for RED statements.
+3. Add persistent scheduled evidence follow-up in Supabase before enabling automatic resolution of real political pledges; ORANGE resolutions must continue to require a human.

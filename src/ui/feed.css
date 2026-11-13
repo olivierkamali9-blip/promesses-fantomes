@@ -411,3 +411,25 @@
   line-height: 1.25;
   text-transform: none;
 }
+
+.pledge-card__statement {
+  margin: 0 0 0.9rem;
+  padding: 0.7rem 0.8rem;
+  border-left: 3px solid var(--color-violet);
+  color: var(--color-bone);
+  background: rgb(139 92 246 / 8%);
+}
+
+.pledge-card__statement p {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+
+.pledge-card__statement cite {
+  display: block;
+  margin-top: 0.4rem;
+  color: var(--color-muted);
+  font-size: 0.68rem;
+  font-style: normal;
+}

@@ -1,18 +1,58 @@
+import type { Candidate } from '../ai/types'
 import type { SourceAdapter } from './adapter'
 import { FixtureAdapter } from './adapter'
 import { HttpAdapter } from './httpAdapter'
+import { PoliticalHttpAdapter } from './politicalHttp'
 
 export type AdapterMode = 'live' | 'demo'
+export type RefreshAwareSourceAdapter = SourceAdapter & {
+  readonly lastRefreshAt?: number | null
+}
 export type ModeAwareSourceAdapter = SourceAdapter & {
   readonly mode: AdapterMode
   readonly lastRefreshAt?: number | null
+  readonly supportsLiveRefresh?: boolean
+}
+
+export class CombinedLiveAdapter implements SourceAdapter {
+  readonly mode = 'live' as const
+
+  constructor(private readonly adapters: readonly RefreshAwareSourceAdapter[]) {}
+
+  get lastRefreshAt(): number | null {
+    const refreshes = this.adapters
+      .map((adapter) => adapter.lastRefreshAt)
+      .filter((value): value is number => typeof value === 'number')
+    return refreshes.length > 0 ? Math.max(...refreshes) : null
+  }
+
+  async searchNews(query: string): Promise<Candidate[]> {
+    const results = await Promise.allSettled(
+      this.adapters.map((adapter) => adapter.searchNews(query)),
+    )
+    const candidates = results.flatMap((result) =>
+      result.status === 'fulfilled' ? result.value : [],
+    )
+
+    if (candidates.length === 0) {
+      throw new Error('Aucune source réelle n’est disponible.')
+    }
+
+    return candidates.filter(
+      (candidate, index, all) =>
+        all.findIndex((item) =>
+          item.sourceUrl === candidate.sourceUrl && item.title === candidate.title,
+        ) === index,
+    )
+  }
 }
 
 class FallbackSourceAdapter implements ModeAwareSourceAdapter {
   private activeMode: AdapterMode = 'live'
+  readonly supportsLiveRefresh = true
 
   constructor(
-    private readonly live: SourceAdapter,
+    private readonly live: RefreshAwareSourceAdapter,
     private readonly fallback: FixtureAdapter,
   ) {}
 
@@ -22,17 +62,14 @@ class FallbackSourceAdapter implements ModeAwareSourceAdapter {
 
   get lastRefreshAt(): number | null {
     if (this.activeMode !== 'live') return null
-    return (this.live as SourceAdapter & { readonly lastRefreshAt?: number | null })
-      .lastRefreshAt ?? null
+    return this.live.lastRefreshAt ?? null
   }
 
   async searchNews(query: string) {
-    if (this.activeMode === 'demo') {
-      return this.fallback.searchNews(query)
-    }
-
     try {
-      return await this.live.searchNews(query)
+      const candidates = await this.live.searchNews(query)
+      this.activeMode = 'live'
+      return candidates
     } catch {
       this.activeMode = 'demo'
       return this.fallback.searchNews(query)
@@ -51,7 +88,10 @@ function environmentDemoMode(): boolean {
 
 export function createAdapter(
   demoMode = environmentDemoMode(),
-  liveAdapter: SourceAdapter = new HttpAdapter(),
+  liveAdapter: RefreshAwareSourceAdapter = new CombinedLiveAdapter([
+    new HttpAdapter(),
+    new PoliticalHttpAdapter(),
+  ]),
   fixtureAdapter = new FixtureAdapter(),
 ): ModeAwareSourceAdapter {
   if (demoMode) {
@@ -61,5 +101,5 @@ export function createAdapter(
   return new FallbackSourceAdapter(liveAdapter, fixtureAdapter)
 }
 
-export { FixtureAdapter, HttpAdapter }
+export { FixtureAdapter, HttpAdapter, PoliticalHttpAdapter }
 export type { SourceAdapter }

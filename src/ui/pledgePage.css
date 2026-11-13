@@ -514,3 +514,24 @@ fieldset:disabled input {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
+
+.pledge-page__statement {
+  margin: 1rem 0 0;
+  padding: 0.85rem 1rem;
+  border-left: 3px solid var(--color-violet);
+  color: var(--color-bone);
+  background: rgb(139 92 246 / 9%);
+}
+
+.pledge-page__statement p {
+  margin: 0;
+  line-height: 1.6;
+}
+
+.pledge-page__statement cite {
+  display: block;
+  margin-top: 0.5rem;
+  color: var(--color-muted);
+  font-size: 0.75rem;
+  font-style: normal;
+}

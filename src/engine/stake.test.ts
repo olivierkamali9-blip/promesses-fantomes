@@ -1,6 +1,25 @@
 import fc from 'fast-check'
 import { describe, expect, it } from 'vitest'
-import { totalStakedOnDay, validateStake } from './stake'
+import { isStakeWindowOpen, totalStakedOnDay, validateStake } from './stake'
+
+describe('stake window properties', () => {
+  it('never remains open at or after the deadline', () => {
+    fc.assert(
+      fc.property(
+        fc.integer({ min: 0, max: 2_000_000_000_000 }),
+        fc.nat({ max: 1_000_000 }),
+        fc.constantFrom('APPARITION' as const, 'HAUNTING' as const),
+        (deadline, delay, state) => {
+          expect(isStakeWindowOpen(
+            state,
+            new Date(deadline).toISOString(),
+            deadline + delay,
+          )).toBe(false)
+        },
+      ),
+    )
+  })
+})
 
 describe('validateStake examples', () => {
   it('rejects non-integers, amounts below 10, amounts above balance, and daily cap excess', () => {
