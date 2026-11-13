@@ -46,8 +46,14 @@ export function Feed({
   const [activeTab, setActiveTab] = useState<FeedTab>('open')
   const [category, setCategory] = useState<CategoryFilter>('ALL')
   const now = new Date()
+  const feedPledges = useMemo(() => {
+    const hasRealPledges = pledges.some((pledge) => pledge.liveSource)
+    return sourceMode === 'live' && hasRealPledges
+      ? pledges.filter((pledge) => pledge.liveSource)
+      : pledges
+  }, [pledges, sourceMode])
   const visiblePledges = useMemo(() => {
-    const tabPledges = pledges.filter((pledge) =>
+    const tabPledges = feedPledges.filter((pledge) =>
       pledge.liveKind !== 'REPLAY' &&
       (activeTab === 'resolved'
         ? isResolved(pledge)
@@ -56,20 +62,22 @@ export function Feed({
 
     return filterByCategory(tabPledges, category)
       .sort(
-        (left, right) =>
-          new Date(left.deadline).getTime() - new Date(right.deadline).getTime(),
+        (left, right) => {
+          if (left.liveSource !== right.liveSource) return left.liveSource ? -1 : 1
+          return new Date(left.deadline).getTime() - new Date(right.deadline).getTime()
+        },
       )
-  }, [activeTab, category, pledges])
+  }, [activeTab, category, feedPledges])
   const replayPledges = useMemo(
     () => filterByCategory(
-      pledges.filter((pledge) => pledge.liveKind === 'REPLAY'),
+      feedPledges.filter((pledge) => pledge.liveKind === 'REPLAY'),
       category,
     )
       .sort((left, right) =>
         Date.parse(right.deadline) - Date.parse(left.deadline),
       )
       .slice(0, 3),
-    [category, pledges],
+    [category, feedPledges],
   )
 
   function handleTabKey(event: KeyboardEvent<HTMLButtonElement>) {

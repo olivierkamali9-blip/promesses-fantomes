@@ -10,6 +10,7 @@ import {
   normalizeOpenFootball,
   openFootballSeasonFolder,
   sameTeam,
+  selectLiveFootballCandidates,
   type LiveMatch,
 } from './footballLive'
 
@@ -149,6 +150,28 @@ describe('OpenFootball season folders', () => {
         )
       }),
     )
+  })
+})
+
+describe('football candidate selection', () => {
+  it('uses the nearest future fixtures when the next seven days are empty', () => {
+    const now = Date.parse('2026-11-13T09:00:00.000Z')
+    const matches: LiveMatch[] = [8, 9].map((days, index) => ({
+      competition: 'Premier League',
+      kickoffUtc: new Date(now + days * 24 * 60 * 60 * 1_000).toISOString(),
+      home: `Home ${index}`,
+      away: `Away ${index}`,
+      status: 'SCHEDULED',
+      scoreFt: null,
+      sourceName: 'football-data.org',
+    }))
+
+    const selected = selectLiveFootballCandidates(
+      footballMatchesToCandidates(matches),
+      now,
+    )
+    expect(selected).toHaveLength(2)
+    expect(selected.every((candidate) => candidate.phase === 'UPCOMING')).toBe(true)
   })
 })
 

@@ -188,3 +188,20 @@ Push and verify that the official Feed reports live sources and shows the real r
 1. Commit and push the official-host live-mode override.
 2. Wait for Vercel’s automatic deployment and reload the app.
 3. Confirm `Sources : en direct` and `Rediffusion réelle` are visible.
+
+## Session — 2026-11-13 — Real-only Feed correction
+
+### Done
+- Confirmed GitHub `main` and Vercel both contain the live-host override; the deployment status is successful.
+- Confirmed the production football API returns real future fixtures and two-source finished results.
+- Identified the remaining calendar gap: the nearest fixture is eight days away, so the strict seven-day selector returned no upcoming cards.
+- Added a nearest-future fallback when the seven-day window is empty, bumped the browser football cache version, and made the live Feed hide fictional seed cards once at least one real pledge has loaded.
+- Kept the six-card limit and added a selection regression test.
+
+### Next
+Push this final Feed-selection correction and verify the official deployment shows only real match cards while live mode is healthy.
+
+### Next steps
+1. Run tests/build through Vercel.
+2. Push the changed football selector, adapter cache, Feed, test, and session notes.
+3. Reload the production app after deployment and confirm `Match réel` and `Rediffusion d’un vrai résultat` cards.

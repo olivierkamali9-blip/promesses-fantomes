@@ -370,14 +370,18 @@ export function selectLiveFootballCandidates(
   now: number,
 ): LiveFootballCandidate[] {
   const latestUpcoming = now + 7 * DAY_MS
-  const upcoming = candidates
-    .filter((candidate) => {
-      const kickoff = Date.parse(candidate.publishedAt)
-      return candidate.phase === 'UPCOMING' &&
-        kickoff >= now && kickoff <= latestUpcoming
-    })
+  const futureCandidates = candidates
+    .filter((candidate) =>
+      candidate.phase === 'UPCOMING' && Date.parse(candidate.publishedAt) >= now,
+    )
     .sort((left, right) => Date.parse(left.publishedAt) - Date.parse(right.publishedAt))
-    .slice(0, 6)
+  const withinSevenDays = futureCandidates.filter(
+    (candidate) => Date.parse(candidate.publishedAt) <= latestUpcoming,
+  )
+  const upcoming = (withinSevenDays.length > 0
+    ? withinSevenDays
+    : futureCandidates
+  ).slice(0, 6)
   const replays = candidates
     .filter((candidate) =>
       candidate.phase === 'REPLAY' &&

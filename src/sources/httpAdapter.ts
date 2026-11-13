@@ -10,7 +10,7 @@ import {
 } from './footballLive'
 
 const LIVE_CACHE_TTL_MS = 10 * 60 * 1_000
-const LIVE_CACHE_VERSION = 1
+const LIVE_CACHE_VERSION = 2
 const LIVE_CACHE_PREFIX = 'promesses-fantomes-live-football'
 
 type StorageLike = Pick<Storage, 'getItem' | 'setItem'>
