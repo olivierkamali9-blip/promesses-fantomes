@@ -160,6 +160,7 @@ function App() {
         cemeteryCount={cemeteryCount}
         sourceMode={sourceMode}
         sourceRefreshAt={state.sourceRefreshAt ?? currentTime}
+        isRefreshing={isGeneratingDrafts}
       />
     )
   }

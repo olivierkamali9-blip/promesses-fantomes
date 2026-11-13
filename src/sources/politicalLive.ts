@@ -1,4 +1,5 @@
 import type { Candidate, Draft } from '../ai/types'
+import { classifyByRules, mergeTier } from '../engine/safety.js'
 
 export type PoliticalCandidate = Candidate & {
   candidateKind: 'political-statement'
@@ -7,6 +8,7 @@ export type PoliticalCandidate = Candidate & {
   deadline: string
   sourceName: string
   independentGroup: string
+  detectedBy: 'gemini' | 'rules'
 }
 
 const COMMITMENT_PATTERN = /\b(promet|a promis|ont promis|promettent|s['’]engage|s['’](?:est|sont) engagé(?:e|s)?|annonce que|a annoncé que|ont annoncé que|garantit|a garanti|garantissent|assure que|a assuré que|assurent que)\b/iu
@@ -67,6 +69,7 @@ export function politicalCandidateFromStatement(
     name: string
     independentGroup: string
     publishedAt: string
+    detectedBy?: 'gemini' | 'rules'
   },
   now: number,
 ): PoliticalCandidate | null {
@@ -98,6 +101,7 @@ export function politicalCandidateFromStatement(
     deadline,
     sourceName: source.name,
     independentGroup: source.independentGroup,
+    detectedBy: source.detectedBy ?? 'rules',
   }
 }
 
@@ -122,7 +126,8 @@ export function isPoliticalCandidate(value: unknown): value is PoliticalCandidat
     typeof candidate.exactStatement === 'string' && candidate.exactStatement.length <= 500 &&
     typeof candidate.deadline === 'string' && Number.isFinite(Date.parse(candidate.deadline)) &&
     typeof candidate.sourceName === 'string' && candidate.sourceName.length <= 120 &&
-    typeof candidate.independentGroup === 'string' && candidate.independentGroup.length <= 80
+    typeof candidate.independentGroup === 'string' && candidate.independentGroup.length <= 80 &&
+    (candidate.detectedBy === 'gemini' || candidate.detectedBy === 'rules')
 }
 
 export function draftPoliticalStatement(candidate: PoliticalCandidate): Draft {
@@ -152,6 +157,9 @@ export function draftPoliticalStatement(candidate: PoliticalCandidate): Draft {
       kind: 'statement',
       independentGroup: candidate.independentGroup,
     }],
-    modelTier: 'ORANGE',
+    modelTier: mergeTier(
+      'ORANGE',
+      classifyByRules(candidate.exactStatement).tier,
+    ),
   }
 }

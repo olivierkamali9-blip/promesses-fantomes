@@ -728,7 +728,9 @@ function draftToPledge(item: DraftQueueItem): DemoPledge | null {
     liveSource: item.sourceMode === 'live',
     liveKind: item.sourceMode === 'live' && !politicalCandidate ? 'UPCOMING' : undefined,
     realMatchLabel: item.sourceMode === 'live'
-      ? politicalCandidate ? 'Déclaration réelle' : 'Match réel'
+      ? politicalCandidate
+        ? `Déclaration réelle · ${politicalCandidate.detectedBy === 'gemini' ? 'détectée par Gemini' : 'détectée par règles'}`
+        : 'Match réel'
       : undefined,
     publicStatement: politicalCandidate?.exactStatement,
     speaker: politicalCandidate?.speaker,

@@ -23,9 +23,26 @@ describe('political statement monitoring', () => {
 
     const draft = draftPoliticalStatement(candidate!)
     const decision = decide(draft)
+    expect(candidate?.detectedBy).toBe('rules')
     expect(draft.modelTier).toBe('ORANGE')
     expect(decision.tier).toBe('ORANGE')
     expect(decision.action).toBe('PUBLISH')
+  })
+
+  it('escalates sensitive statements before the Guardian can publish them', () => {
+    const red = politicalCandidateFromStatement(
+      "Le président s'engage à publier le calendrier de l’élection avant le 31 décembre 2099.",
+      SOURCE,
+      NOW,
+    )
+    const blocked = politicalCandidateFromStatement(
+      "Le président s'engage à publier le rapport sur la religion avant le 31 décembre 2099.",
+      SOURCE,
+      NOW,
+    )
+
+    expect(draftPoliticalStatement(red!).modelTier).toBe('RED')
+    expect(draftPoliticalStatement(blocked!).modelTier).toBe('BLOCKED')
   })
 
   it('rejects text without an attributable future commitment', () => {

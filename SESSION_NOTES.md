@@ -205,3 +205,22 @@ Push this final Feed-selection correction and verify the official deployment sho
 1. Run tests/build through Vercel.
 2. Push the changed football selector, adapter cache, Feed, test, and session notes.
 3. Reload the production app after deployment and confirm `Match réel` and `Rediffusion d’un vrai résultat` cards.
+
+## Session — 2026-11-13 — Gemini runtime integration
+
+### Done
+- Confirmed that the previous implementation used only `FixtureLlm`; no remote model was connected for political monitoring.
+- Added server-only Gemini 2.5 Flash analysis through `GEMINI_API_KEY`, with one structured request over allowlisted article excerpts and no browser exposure of the secret.
+- Added hard validation after Gemini: every selected statement must occur in the fetched article, contain an attributable public actor, a clear commitment, and an explicit future deadline; local safety rules still escalate RED and BLOCKED content before Guardian publication.
+- Added JSON response schema, output limits, source-body scoping, timeouts, rule fallback, source provenance (`gemini` or `rules`), and a new political cache version.
+- Updated the Feed so live mode no longer presents fictional cards while real sources are loading; it now announces that Gemini and Scout are monitoring, then shows real cards or an honest empty state.
+- Updated About text to distinguish Gemini’s runtime role from Kiro’s design, implementation, testing, and correction work for Kiroween.
+- Type/test commands were started, but the local terminal bridge interrupted them with exit code `-1` and no diagnostic output; Vercel remains the authoritative build check.
+
+### Next
+Push the Gemini integration, verify Vercel builds it, then inspect `/api/political` for `aiProvider: "gemini"`, warnings, and validated candidates.
+
+### Next steps
+1. Commit and push the Gemini server integration and UI loading state.
+2. Confirm the Vercel deployment succeeds and the production environment exposes `GEMINI_API_KEY` only to server functions.
+3. Inspect the political endpoint and Feed; tune source extraction only from observed, cited failures without weakening quote or safety validation.

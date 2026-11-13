@@ -5,7 +5,7 @@ import {
   type PoliticalCandidate,
 } from './politicalLive'
 
-const CACHE_KEY = 'promesses-fantomes-political:v1'
+const CACHE_KEY = 'promesses-fantomes-political:v2'
 const CACHE_TTL_MS = 10 * 60 * 1_000
 
 type StorageLike = Pick<Storage, 'getItem' | 'setItem'>
@@ -82,7 +82,7 @@ export class PoliticalHttpAdapter implements SourceAdapter {
     if (!this.storage) return
     try {
       const payload: CachePayload = {
-        expiresAt: this.now() + CACHE_TTL_MS,
+        expiresAt: refreshedAt + CACHE_TTL_MS,
         refreshedAt,
         candidates,
       }
@@ -94,7 +94,7 @@ export class PoliticalHttpAdapter implements SourceAdapter {
 
   private async loadRemote(): Promise<PoliticalCandidate[]> {
     const controller = new AbortController()
-    const timeout = globalThis.setTimeout(() => controller.abort(), 8_000)
+    const timeout = globalThis.setTimeout(() => controller.abort(), 35_000)
     try {
       const response = await this.fetcher(this.endpoint, { signal: controller.signal })
       if (!response.ok) throw new Error(`Veille politique indisponible (${response.status}).`)
@@ -110,7 +110,7 @@ export class PoliticalHttpAdapter implements SourceAdapter {
       this.writeCache(candidates, refreshedAt)
       return candidates
     } catch (error) {
-      if (controller.signal.aborted) throw new Error('La veille politique a dépassé 8 secondes.')
+      if (controller.signal.aborted) throw new Error('La veille politique a dépassé 35 secondes.')
       throw error
     } finally {
       globalThis.clearTimeout(timeout)

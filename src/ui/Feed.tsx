@@ -13,6 +13,7 @@ type FeedProps = {
   cemeteryCount: number
   sourceMode: AdapterMode
   sourceRefreshAt: number
+  isRefreshing: boolean
 }
 
 const FINAL_STATES: ReadonlySet<LifecycleState> = new Set([
@@ -42,16 +43,16 @@ export function Feed({
   cemeteryCount,
   sourceMode,
   sourceRefreshAt,
+  isRefreshing,
 }: FeedProps) {
   const [activeTab, setActiveTab] = useState<FeedTab>('open')
   const [category, setCategory] = useState<CategoryFilter>('ALL')
   const now = new Date()
-  const feedPledges = useMemo(() => {
-    const hasRealPledges = pledges.some((pledge) => pledge.liveSource)
-    return sourceMode === 'live' && hasRealPledges
+  const feedPledges = useMemo(() =>
+    sourceMode === 'live'
       ? pledges.filter((pledge) => pledge.liveSource)
-      : pledges
-  }, [pledges, sourceMode])
+      : pledges.filter((pledge) => !pledge.liveSource),
+  [pledges, sourceMode])
   const visiblePledges = useMemo(() => {
     const tabPledges = feedPledges.filter((pledge) =>
       pledge.liveKind !== 'REPLAY' &&
@@ -184,7 +185,13 @@ export function Feed({
         aria-labelledby={activeTab === 'open' ? 'open-tab' : 'resolved-tab'}
       >
         {visiblePledges.length === 0 ? (
-          <p className="feed__empty">Aucun fantôme dans cette catégorie.</p>
+          <p className="feed__empty" role="status">
+            {sourceMode === 'live' && isRefreshing
+              ? 'Gemini et le Scout surveillent les sources réelles…'
+              : sourceMode === 'live'
+                ? 'Aucune nouvelle promesse réelle vérifiable pour ce filtre.'
+                : 'Aucun fantôme dans cette catégorie.'}
+          </p>
         ) : visiblePledges.map((pledge) => (
           <PledgeCard
             key={pledge.id}
