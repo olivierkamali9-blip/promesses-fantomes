@@ -224,3 +224,18 @@ Push the Gemini integration, verify Vercel builds it, then inspect `/api/politic
 1. Commit and push the Gemini server integration and UI loading state.
 2. Confirm the Vercel deployment succeeds and the production environment exposes `GEMINI_API_KEY` only to server functions.
 3. Inspect the political endpoint and Feed; tune source extraction only from observed, cited failures without weakening quote or safety validation.
+
+## Session — 2026-11-13 — Gemini ESM production fix
+
+### Done
+- Deployed commit `5230d0d` successfully, then verified `/api/political` returned HTTP 500 while football remained healthy.
+- Traced the crash to a transitive Node ESM import: `politicalLive.js` imports `safety.js`, whose runtime import of `safety.rules` lacked the required `.js` suffix.
+- Corrected the suffix, expanded the runtime-import AST test across the full political server chain, and added a safe JSON error response plus a 30-second Vercel function duration declaration.
+
+### Next
+Push the ESM fix and query `/api/political` again; the response must be JSON with `aiProvider`, candidates, and/or explicit warnings rather than HTTP 500.
+
+### Next steps
+1. Commit and push the ESM chain correction.
+2. Verify Vercel deployment success.
+3. Inspect the production political endpoint and only then assess Gemini extraction quality.

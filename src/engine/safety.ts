@@ -3,7 +3,7 @@ import {
   GREEN_KEYWORDS,
   ORANGE_KEYWORDS,
   RED_KEYWORDS,
-} from './safety.rules'
+} from './safety.rules.js'
 
 export type SafetyTier = 'GREEN' | 'ORANGE' | 'RED' | 'BLOCKED'
 

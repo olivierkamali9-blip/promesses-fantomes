@@ -4,6 +4,8 @@ import apiSource from '../../api/fixtures.ts?raw'
 import politicalApiSource from '../../api/political.ts?raw'
 import serverSource from './footballServer.ts?raw'
 import politicalServerSource from './politicalServer.ts?raw'
+import politicalLiveSource from './politicalLive.ts?raw'
+import safetySource from '../engine/safety.ts?raw'
 
 function runtimeRelativeImports(source: string, fileName: string): string[] {
   const imports: string[] = []
@@ -45,6 +47,8 @@ describe('Node ESM runtime imports', () => {
     ['api/political.ts', politicalApiSource],
     ['src/sources/footballServer.ts', serverSource],
     ['src/sources/politicalServer.ts', politicalServerSource],
+    ['src/sources/politicalLive.ts', politicalLiveSource],
+    ['src/engine/safety.ts', safetySource],
   ])('%s uses .js on every runtime relative import', (fileName, source) => {
     const imports = runtimeRelativeImports(source, fileName)
     expect(imports.length).toBeGreaterThan(0)
