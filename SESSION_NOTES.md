@@ -142,3 +142,18 @@ Deploy through Vercel, leave `VITE_DEMO` unset or set to `0`, and verify that th
 1. Run the full Vitest suite and production TypeScript/Vite build.
 2. Call `/api/fixtures` and `/api/political` on the deployed host, then confirm `Sources : en direct` and inspect the Guardian queue for RED statements.
 3. Add persistent scheduled evidence follow-up in Supabase before enabling automatic resolution of real political pledges; ORANGE resolutions must continue to require a human.
+
+## Session — 2026-11-13 — Vercel TypeScript fix
+
+### Done
+- Fixed TS2339 in `draftToPledge` by retaining the narrowed `PoliticalCandidate` reference before reading `exactStatement` and `speaker`.
+- Started `npm.cmd run build`; TypeScript/Vite began without reporting the previous TS2339 errors, but the local execution environment interrupted the process with exit code `-1` before a final result.
+- No Git operation was run.
+
+### Next
+Push the focused fix and let Vercel run the authoritative production build.
+
+### Next steps
+1. Stage `src/state/useGame.ts` and `SESSION_NOTES.md`.
+2. Commit and push the TypeScript narrowing fix.
+3. Confirm the new Vercel deployment completes or share the next complete error.

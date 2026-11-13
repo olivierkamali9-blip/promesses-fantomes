@@ -707,14 +707,16 @@ export function replayCandidateToPledge(
 
 function draftToPledge(item: DraftQueueItem): DemoPledge | null {
   const decision = decide(item.draft)
-  const political = isPoliticalCandidate(item.candidate)
+  const politicalCandidate = isPoliticalCandidate(item.candidate)
+    ? item.candidate
+    : null
   if (decision.action === 'REJECT' || decision.tier === 'BLOCKED') {
     return null
   }
 
   return {
     id: item.id,
-    category: political
+    category: politicalCandidate
       ? 'POLITICS'
       : item.sourceMode === 'live' ? 'SPORT' : 'WORLD',
     question: item.draft.question,
@@ -724,12 +726,12 @@ function draftToPledge(item: DraftQueueItem): DemoPledge | null {
     evidenceLevel: evidenceLevel(item.draft.sources),
     tier: decision.tier,
     liveSource: item.sourceMode === 'live',
-    liveKind: item.sourceMode === 'live' && !political ? 'UPCOMING' : undefined,
+    liveKind: item.sourceMode === 'live' && !politicalCandidate ? 'UPCOMING' : undefined,
     realMatchLabel: item.sourceMode === 'live'
-      ? political ? 'Déclaration réelle' : 'Match réel'
+      ? politicalCandidate ? 'Déclaration réelle' : 'Match réel'
       : undefined,
-    publicStatement: political ? item.candidate.exactStatement : undefined,
-    speaker: political ? item.candidate.speaker : undefined,
+    publicStatement: politicalCandidate?.exactStatement,
+    speaker: politicalCandidate?.speaker,
     unconfirmed: decision.tier === 'ORANGE',
     stakes: { KEPT: 0, BROKEN: 0 },
     sources: item.draft.sources.map((source, index) => ({
