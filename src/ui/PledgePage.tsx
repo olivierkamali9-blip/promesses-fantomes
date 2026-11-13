@@ -6,7 +6,7 @@ import { isStakeWindowOpen, validateStake, type StakeValidation } from '../engin
 import { poolPercentages, type Side } from '../engine/souls'
 import { translate, type Locale } from '../i18n'
 import type { Player, SimulationResult } from '../state/useGame'
-import { formatCountdown } from './pledgeCardProps'
+import { formatCountdown, truncateStatement } from './pledgeCardProps'
 import { GhostFigure } from './GhostFigure'
 import './pledgePage.css'
 
@@ -131,6 +131,7 @@ export function PledgePage({
   const guardianReasonReady = guardianReason.trim().length > 0
   const noMoneyNotice = translate(locale, 'notice.noMoney')
   const dailyCapLabel = translate(locale, 'notice.dailyCap')
+  const statementSource = pledge.sources.find((source) => source.kind === 'statement')
 
   function submitStake(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -184,8 +185,18 @@ export function PledgePage({
           </p>
           {pledge.publicStatement && (
             <blockquote className="pledge-page__statement">
-              <p>{pledge.publicStatement}</p>
+              <p>{truncateStatement(pledge.publicStatement)}</p>
               {pledge.speaker && <cite>Déclaration rapportée par la source · Sujet : {pledge.speaker}</cite>}
+              {statementSource && (
+                <a
+                  className="pledge-page__source-link"
+                  href={statementSource.url}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Lire la source
+                </a>
+              )}
             </blockquote>
           )}
           <time className="pledge-page__countdown" dateTime={pledge.deadline}>

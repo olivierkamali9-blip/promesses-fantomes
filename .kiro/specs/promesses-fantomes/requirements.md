@@ -51,7 +51,7 @@ Promesses Fantômes (Ghost Pledges) is a mobile-first web app where public pledg
 
 ### R10 Accessibility and low data
 1. THE app SHALL work at 360px width, respect reduced motion, keep AA contrast, and not rely on colour alone.
-2. First-load JavaScript SHALL stay under 200 KB.
+2. First-load JavaScript SHALL stay under 100 KB gzipped (transferred size), because transferred size determines how many bytes users download on slow networks.
 
 ### R11 Demo mode
 1. WHEN VITE_DEMO=1 THEN the app SHALL run end to end on fixtures without network or API keys.

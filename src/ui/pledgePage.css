@@ -535,3 +535,18 @@ fieldset:disabled input {
   font-size: 0.75rem;
   font-style: normal;
 }
+
+.pledge-page__source-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-top: 0.65rem;
+  color: var(--color-spectral);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.pledge-page__source-link:focus-visible {
+  outline: 3px solid var(--color-ember);
+  outline-offset: 3px;
+}

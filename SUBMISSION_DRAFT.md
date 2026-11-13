@@ -30,7 +30,7 @@ Planning specs and steering were initially prepared with Claude. Kiro implemente
 
 - React, Vite, TypeScript, mobile-first PWA
 - Pure engine with Vitest and fast-check
-- Supabase Postgres schema with RLS and atomic stake function
+- Supabase Postgres schema is prepared but not connected in the demo build, where state is stored on the device
 - Vercel serverless source adapters
 - Demo mode with fictional fixtures and no API key
 - Real football sources and allowlisted DRC public-information sources

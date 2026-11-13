@@ -304,3 +304,26 @@ Push the bundle split and confirm Vercel passes the strict API type-check and 20
 1. Commit and push the lazy-loading correction.
 2. Confirm Vercel deployment succeeds and the production app loads the Feed chunk normally.
 3. Complete the real-phone checklist and external task 16/17 actions.
+
+## Session — 2026-11-13 — Production bundle and sourced statements
+
+### Done
+- Changed the initial JavaScript budget to 100 KB gzipped at gzip level 9 while reporting both raw and gzipped byte totals.
+- Updated R10’s transferred-size requirement and the submission’s accurate Supabase demo status.
+- Confirmed `PledgePage` was already lazy-loaded, so no behavior-changing import change was needed.
+- Truncated displayed sourced political statements to 160 characters while preserving full data and added original-article links on cards and detail pages.
+- Did not run commands, tests, builds, or Git, as explicitly requested.
+
+### Validation
+- Verified by file inspection that the bundle checker uses `gzipSync` at level 9, enforces 102,400 gzipped bytes, and reports raw and gzipped totals.
+- Verified by source search that both `publicStatement` render sites truncate the displayed text and provide `Lire la source` links while `exactStatement` remains unchanged in the data flow.
+- `npm run build` and the Vitest command were not run, so production compilation, the measured gzip total, and automated tests remain unverified.
+- No Git command was run.
+
+### Next
+Have the GitHub helper verify the production build, tests, bundle budget, and source-link behavior.
+
+### Next steps
+1. Run the Vitest suite in non-watch mode.
+2. Run the production build and confirm the gzipped initial JavaScript stays at or below 102,400 bytes.
+3. Check both political-statement source links and commit the verified changes.
