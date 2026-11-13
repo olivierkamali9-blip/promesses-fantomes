@@ -239,3 +239,18 @@ Push the ESM fix and query `/api/political` again; the response must be JSON wit
 1. Commit and push the ESM chain correction.
 2. Verify Vercel deployment success.
 3. Inspect the production political endpoint and only then assess Gemini extraction quality.
+
+## Session — 2026-11-13 — Gemini production diagnostics
+
+### Done
+- Verified commit `619b3a9` deployed successfully and `/api/political` now returns JSON instead of HTTP 500.
+- Production reports that Gemini falls back to rules, but the generic warning hid whether the cause was authentication, model access, quota, or schema validation.
+- Added a sanitized Gemini error reason to API warnings; API keys are never included in these errors.
+
+### Next
+Deploy the diagnostic and inspect the exact Gemini HTTP/result error before changing credentials, model, or schema.
+
+### Next steps
+1. Push the sanitized diagnostic.
+2. Query `/api/political` after deployment.
+3. Apply one targeted fix from the reported status without weakening source validation.

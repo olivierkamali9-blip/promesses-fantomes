@@ -384,8 +384,9 @@ export async function handlePoliticalStatements(
     try {
       aiCandidates = await geminiCandidates(articles, geminiApiKey.trim(), now)
       aiProvider = 'gemini'
-    } catch {
-      warnings.push('Gemini est momentanément indisponible ; les règles locales restent actives.')
+    } catch (error) {
+      const reason = error instanceof Error ? error.message : 'erreur inconnue'
+      warnings.push(`Gemini est momentanément indisponible (${reason}) ; les règles locales restent actives.`)
     }
   } else if (!geminiApiKey?.trim()) {
     warnings.push('GEMINI_API_KEY absente ; les règles locales restent actives.')
