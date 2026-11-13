@@ -121,7 +121,7 @@ export class HttpAdapter implements SourceAdapter {
     this.season = options.season
     this.replaySeason = options.replaySeason ?? '2025-26'
     this.requestMode = options.mode
-    this.fetcher = options.fetcher ?? globalThis.fetch
+    this.fetcher = (options.fetcher ?? globalThis.fetch).bind(globalThis)
     this.storage = options.storage === undefined ? browserStorage() : options.storage
     this.now = options.now ?? Date.now
   }

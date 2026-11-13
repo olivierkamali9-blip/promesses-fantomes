@@ -327,3 +327,23 @@ Have the GitHub helper verify the production build, tests, bundle budget, and so
 1. Run the Vitest suite in non-watch mode.
 2. Run the production build and confirm the gzipped initial JavaScript stays at or below 102,400 bytes.
 3. Check both political-statement source links and commit the verified changes.
+
+## Session — 2026-11-13 — Browser fetch receiver fix
+
+### Done
+- Fixed `Illegal invocation` in both live browser source adapters by binding the selected native or injected `fetch` function to `globalThis` before storing it.
+- Kept endpoint, timeout, cache, fallback, and response behavior unchanged.
+
+### Validation
+- Verified by source inspection that both detached-fetch assignments now bind the correct browser receiver.
+- Verified that the remaining client request sites call these bound fields and that direct server fetch calls are unaffected.
+- No test or build command was run, so automated regression coverage and production compilation remain unverified.
+- No Git command was run.
+
+### Next
+Have the GitHub helper run the automated checks and confirm that live football and political requests no longer report `Illegal invocation` in Chromium.
+
+### Next steps
+1. Run the Vitest suite in non-watch mode.
+2. Run the production build and bundle-size check.
+3. Open the deployed app with live sources enabled and verify both `/api/fixtures` and `/api/political` requests.

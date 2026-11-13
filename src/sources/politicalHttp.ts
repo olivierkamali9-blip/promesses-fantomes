@@ -48,7 +48,7 @@ export class PoliticalHttpAdapter implements SourceAdapter {
 
   constructor(options: PoliticalHttpAdapterOptions = {}) {
     this.endpoint = options.endpoint ?? '/api/political'
-    this.fetcher = options.fetcher ?? globalThis.fetch
+    this.fetcher = (options.fetcher ?? globalThis.fetch).bind(globalThis)
     this.storage = options.storage === undefined ? browserStorage() : options.storage
     this.now = options.now ?? Date.now
   }
