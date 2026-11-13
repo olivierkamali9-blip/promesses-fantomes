@@ -119,6 +119,29 @@ export function Feed({
         ))}
       </div>
 
+      {replayPledges.length > 0 && (
+        <section className="feed__replays" aria-labelledby="replay-title">
+          <div>
+            <p className="feed__eyebrow">Preuves concordantes</p>
+            <h3 id="replay-title">Rediffusion réelle</h3>
+          </div>
+          <p>
+            {replayPledges.length} vrai{replayPledges.length > 1 ? 's' : ''} résultat{replayPledges.length > 1 ? 's' : ''} de la saison 2025-26, confirmé{replayPledges.length > 1 ? 's' : ''} par deux sources.
+          </p>
+          <div className="feed__list">
+            {replayPledges.map((pledge) => (
+              <PledgeCard
+                key={pledge.id}
+                pledge={pledge}
+                state={pledge.state}
+                now={now}
+                href={`#/promesse/${encodeURIComponent(pledge.id)}`}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
       <div className="feed__tabs" role="tablist" aria-label="État des promesses">
         <button
           id="open-tab"
@@ -164,29 +187,6 @@ export function Feed({
           />
         ))}
       </div>
-
-      {replayPledges.length > 0 && (
-        <section className="feed__replays" aria-labelledby="replay-title">
-          <div>
-            <p className="feed__eyebrow">Preuves concordantes</p>
-            <h3 id="replay-title">Rediffusion</h3>
-          </div>
-          <p>
-            {replayPledges.length} vrai{replayPledges.length > 1 ? 's' : ''} résultat{replayPledges.length > 1 ? 's' : ''} de la saison 2025-26, confirmé{replayPledges.length > 1 ? 's' : ''} par deux sources.
-          </p>
-          <div className="feed__list">
-            {replayPledges.map((pledge) => (
-              <PledgeCard
-                key={pledge.id}
-                pledge={pledge}
-                state={pledge.state}
-                now={now}
-                href={`#/promesse/${encodeURIComponent(pledge.id)}`}
-              />
-            ))}
-          </div>
-        </section>
-      )}
     </section>
   )
 }

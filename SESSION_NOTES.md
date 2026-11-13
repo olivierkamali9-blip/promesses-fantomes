@@ -157,3 +157,19 @@ Push the focused fix and let Vercel run the authoritative production build.
 1. Stage `src/state/useGame.ts` and `SESSION_NOTES.md`.
 2. Commit and push the TypeScript narrowing fix.
 3. Confirm the new Vercel deployment completes or share the next complete error.
+
+## Session — 2026-11-13 — Live deployment diagnosis
+
+### Done
+- Inspected the deployed public endpoints directly. The football APIs are healthy and return real OpenFootball data; the 2025-26 results endpoint also returns matching football-data.org results. The political endpoint currently returns no qualifying future commitment and reports Radio Okapi unavailable.
+- Identified the main football visibility defect: the server sorted and sliced forty old OpenFootball `SCHEDULED` rows before the client applied its seven-day window, so every delivered upcoming row was already expired.
+- Fixed server selection to discard expired scheduled rows before sorting and slicing, and moved the verified real replay section above demo pledge cards so real evidence appears immediately.
+- Kept real-source retries, partial-provider support, automatic refresh, and strict no-fabrication rules intact.
+
+### Next
+Push this focused visibility correction and verify the deployed upcoming endpoint starts with future fixtures and the Feed shows `Rediffusion réelle` above demo cards.
+
+### Next steps
+1. Run the build and tests locally or through GitHub/Vercel.
+2. Push `src/sources/footballServer.ts`, `src/ui/Feed.tsx`, and `SESSION_NOTES.md`.
+3. Verify the production Feed and inspect `VITE_DEMO` only if it still reports `Sources : démo` after this deployment.

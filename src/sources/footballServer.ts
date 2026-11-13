@@ -48,7 +48,10 @@ async function fetchJson(url: string, headers?: HeadersInit): Promise<unknown> {
 function selectMode(matches: readonly LiveMatch[], mode: QueryMode): LiveMatch[] {
   const wantedStatus = mode === 'results' ? 'FINISHED' : 'SCHEDULED'
   return matches
-    .filter((match) => match.status === wantedStatus)
+    .filter((match) => {
+      if (match.status !== wantedStatus) return false
+      return mode === 'results' || Date.parse(match.kickoffUtc) >= Date.now()
+    })
     .sort((left, right) => mode === 'results'
       ? Date.parse(right.kickoffUtc) - Date.parse(left.kickoffUtc)
       : Date.parse(left.kickoffUtc) - Date.parse(right.kickoffUtc),
